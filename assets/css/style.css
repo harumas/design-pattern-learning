@@ -645,13 +645,13 @@ pre code.hljs {
   width: 100%;
   min-height: 120px;
 }
-/* Mermaid が付与する max-width を解除して SVG を拡大 */
+/* SVG を 1/3 幅で中央寄せ */
 .mermaid-wrap svg {
   display: block;
-  width: 100% !important;
+  width: 33% !important;
   max-width: 100% !important;
   height: auto !important;
-  min-height: 200px;
+  margin: 0 auto;
 }
 /* ノード内テキストのデフォルト色 */
 .mermaid-wrap foreignObject div,
