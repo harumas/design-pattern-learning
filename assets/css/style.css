@@ -752,9 +752,17 @@ pre code.hljs {
   .sidebar {
     transform: translateX(-100%);
     z-index: 90;
+    overscroll-behavior: contain;
   }
   .sidebar.open {
     transform: translateX(0);
+  }
+  /* サイドバー表示中はページ背景のスクロールを止める */
+  body.sidebar-open {
+    overflow: hidden;
+    /* iOSで慣性スクロールが暴走するのを防ぐ */
+    position: fixed;
+    width: 100%;
   }
   .main-content {
     margin-left: 0;

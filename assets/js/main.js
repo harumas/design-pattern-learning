@@ -44,10 +44,31 @@ function initSidebar() {
   const toggle = document.getElementById('menu-toggle');
   const sidebar = document.querySelector('.sidebar');
   if (toggle && sidebar) {
-    toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+    let _scrollY = 0;
+
+    function openSidebar() {
+      _scrollY = window.scrollY;               // 現在のスクロール位置を記憶
+      sidebar.classList.add('open');
+      document.body.classList.add('sidebar-open');
+      document.body.style.top = `-${_scrollY}px`; // position:fixed でも位置を保持
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      document.body.classList.remove('sidebar-open');
+      document.body.style.top = '';
+      window.scrollTo(0, _scrollY);            // 元の位置へ戻す
+    }
+
+    toggle.addEventListener('click', () => {
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+
     document.addEventListener('click', e => {
-      if (!sidebar.contains(e.target) && !toggle.contains(e.target))
-        sidebar.classList.remove('open');
+      if (sidebar.classList.contains('open') &&
+          !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+        closeSidebar();
+      }
     });
   }
 }
