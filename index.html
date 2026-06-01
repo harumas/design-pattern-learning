@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゲームプログラマーのためのデザインパターン大全</title>
+  <meta name="description" content="C#サンプルとゲームでのユースケース付き。GoF 23 + ゲームパターン + AIパターンを網羅。">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header class="site-header">
+  <button class="menu-toggle" id="menu-toggle" aria-label="メニュー">☰</button>
+  <a class="header-logo" href="index.html">
+    <span class="logo-icon">🎮</span>
+    <span>デザインパターン大全</span>
+  </a>
+  <div class="header-search">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="search-input" placeholder="パターンを検索…" autocomplete="off">
+    <div class="search-results" id="search-results"></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-icon" id="theme-btn" title="テーマ切り替え">☀️</button>
+  </div>
+</header>
+
+<!-- ── Layout ──────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div id="sidebar-nav"></div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>デザインパターン大全</h1>
+      <p>C# サンプルとゲームでの実例付き。<br>
+         GoF 23 パターンからゲームAI・ネットワークまで完全網羅。</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num">70</div><div class="lbl">パターン</div></div>
+        <div class="hero-stat"><div class="num">10</div><div class="lbl">カテゴリ</div></div>
+        <div class="hero-stat"><div class="num">C#</div><div class="lbl">サンプル全対応</div></div>
+        <div class="hero-stat"><div class="num">Unity</div><div class="lbl">実例付き</div></div>
+      </div>
+    </section>
+
+    <!-- カテゴリカード -->
+    <section>
+      <div class="section-title">🗂 カテゴリから探す</div>
+      <div class="category-grid">
+        <a class="category-card" href="pattern.html?id=game-loop" style="--accent-color:#3fb950">
+          <div class="cat-icon">🎮</div>
+          <div class="cat-name">ゲームパターン</div>
+          <div class="cat-count">13 パターン</div>
+          <div class="cat-desc">Game Loop, Object Pool, Component など。ゲーム制作の根幹。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=behavior-tree" style="--accent-color:#bc8cff">
+          <div class="cat-icon">🤖</div>
+          <div class="cat-name">ゲーム AI</div>
+          <div class="cat-count">8 パターン</div>
+          <div class="cat-desc">Behavior Tree, FSM, GOAP, Steering など。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=client-server" style="--accent-color:#58a6ff">
+          <div class="cat-icon">🌐</div>
+          <div class="cat-name">ネットワーク</div>
+          <div class="cat-count">6 パターン</div>
+          <div class="cat-desc">Rollback, Lockstep など多人数ゲームの基盤。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=async-await" style="--accent-color:#d29922">
+          <div class="cat-icon">⚙️</div>
+          <div class="cat-name">並行・非同期</div>
+          <div class="cat-count">6 パターン</div>
+          <div class="cat-desc">Job System, Coroutine, Async/Await など。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=singleton" style="--accent-color:#2ea099">
+          <div class="cat-icon">🏗</div>
+          <div class="cat-name">生成（GoF）</div>
+          <div class="cat-count">5 パターン</div>
+          <div class="cat-desc">Singleton, Factory, Builder, Prototype。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=composite" style="--accent-color:#79c0ff">
+          <div class="cat-icon">🧱</div>
+          <div class="cat-name">構造（GoF）</div>
+          <div class="cat-count">7 パターン</div>
+          <div class="cat-desc">Decorator, Composite, Flyweight など。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=state" style="--accent-color:#f85149">
+          <div class="cat-icon">🔁</div>
+          <div class="cat-name">振る舞い（GoF）</div>
+          <div class="cat-count">11 パターン</div>
+          <div class="cat-desc">State, Observer, Command, Strategy など。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=serialization" style="--accent-color:#e3b341">
+          <div class="cat-icon">💾</div>
+          <div class="cat-name">データ・永続化</div>
+          <div class="cat-count">4 パターン</div>
+          <div class="cat-desc">Repository, Serialization, ScriptableObject。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=ecs" style="--accent-color:#39c5cf">
+          <div class="cat-icon">🏛</div>
+          <div class="cat-name">アーキテクチャ</div>
+          <div class="cat-count">6 パターン</div>
+          <div class="cat-desc">ECS, DI, MVC/MVVM, Clean Architecture。</div>
+        </a>
+        <a class="category-card" href="pattern.html?id=null-object" style="--accent-color:#f778ba">
+          <div class="cat-icon">🧮</div>
+          <div class="cat-name">関数型・汎用</div>
+          <div class="cat-count">4 パターン</div>
+          <div class="cat-desc">Null Object, Result型, Immutable, RAII。</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ゲームでよく使う Top 10 -->
+    <section>
+      <div class="section-title">🏆 ゲームでよく使うパターン Top 10</div>
+      <div class="pattern-grid" id="top10-grid">
+        <!-- JS で生成 -->
+      </div>
+    </section>
+
+    <!-- ナビゲーション補助 -->
+    <section>
+      <div class="section-title">📚 学習ガイド</div>
+      <div class="pattern-grid">
+        <a class="pattern-card" href="roadmap.html">
+          <div class="pc-header">
+            <div class="pc-name">🗺 学習ロードマップ</div>
+          </div>
+          <div class="pc-summary">初心者から上級者までの推奨学習順。どのパターンからはじめるべきかわかる。</div>
+        </a>
+        <a class="pattern-card" href="cheatsheet.html">
+          <div class="pc-header">
+            <div class="pc-name">📋 早見表（チートシート）</div>
+          </div>
+          <div class="pc-summary">全パターンを1ページで俯瞰。目的からパターンを逆引きできる。</div>
+        </a>
+        <a class="pattern-card" href="glossary.html">
+          <div class="pc-header">
+            <div class="pc-name">📖 用語集</div>
+          </div>
+          <div class="pc-summary">結合度・凝集度・ポリモーフィズムなど前提知識を整理。</div>
+        </a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <span>© 2025 Design Pattern Learning</span>
+  <a href="https://gameprogrammingpatterns.com" target="_blank" rel="noopener">Game Programming Patterns</a>
+  <a href="https://refactoring.guru/design-patterns" target="_blank" rel="noopener">Refactoring.Guru</a>
+  <span>サンプルコード: C# (.NET / Unity)</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="assets/js/sidebar.js"></script>
+<script src="assets/js/main.js"></script>
+<script>
+  const TOP10 = [
+    { id: 'object-pool',    cat: 'game',      name: 'Object Pool',      summary: '弾丸・エフェクトの使い回しで GC を撲滅。' },
+    { id: 'state',          cat: 'behavioral',name: 'State',            summary: 'キャラクター状態を型安全に管理。' },
+    { id: 'observer',       cat: 'behavioral',name: 'Observer',         summary: 'HP 変化→UI 更新を疎結合に繋ぐ。' },
+    { id: 'command',        cat: 'behavioral',name: 'Command',          summary: '入力をオブジェクト化してリプレイ・Undo。' },
+    { id: 'singleton',      cat: 'creational',name: 'Singleton',        summary: 'GameManager のグローバル参照（注意点も学ぶ）。' },
+    { id: 'event-queue',    cat: 'game',      name: 'Event Queue',      summary: 'サウンド・実績通知をキューで非同期処理。' },
+    { id: 'component',      cat: 'game',      name: 'Component',        summary: 'Unity の GameObject と同じ合成設計。' },
+    { id: 'strategy',       cat: 'behavioral',name: 'Strategy',         summary: 'AI アルゴリズムを実行時に差し替える。' },
+    { id: 'finite-state-machine', cat: 'game-ai', name: 'FSM',         summary: '敵 AI の基本。状態と遷移を明示的にモデル化。' },
+    { id: 'behavior-tree',  cat: 'game-ai',   name: 'Behavior Tree',    summary: 'AAA 標準の AI 設計。柔軟な振る舞い合成。' },
+  ];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    buildSidebar();
+
+    const grid = document.getElementById('top10-grid');
+    if (grid) {
+      grid.innerHTML = TOP10.map((p, i) => `
+        <a class="pattern-card" href="pattern.html?id=${p.id}">
+          <div class="pc-header">
+            <div class="pc-name">${i + 1}. ${p.name}</div>
+            <span class="badge badge-${p.cat}"></span>
+          </div>
+          <div class="pc-summary">${p.summary}</div>
+        </a>
+      `).join('');
+    }
+  });
+</script>
+</body>
+</html>
