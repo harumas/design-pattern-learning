@@ -3599,10 +3599,6 @@ interface IAudioService {
     </ul>`,
 
   diagram: `classDiagram
-    classDef client   fill:#1c2128
-    classDef iface    fill:#0d2137
-    classDef adapter  fill:#1e0d37
-    classDef external fill:#1f1200
 
     class Client {
       +Shoot()
@@ -3802,10 +3798,6 @@ class BowMobile : Weapon { }
     </ul>`,
 
   diagram: `classDiagram
-    classDef abstraction fill:#1a2f45
-    classDef concrete    fill:#0d2410
-    classDef iface       fill:#0d2137
-    classDef impl        fill:#1c2128
 
     class Weapon {
       <<abstract>>
@@ -4022,9 +4014,6 @@ void Update(Node node) {
     呼び出し側はツリーの深さを意識せずに操作できます。</p>`,
 
   diagram: `classDiagram
-    classDef component fill:#1a2f45
-    classDef leaf      fill:#0d2410
-    classDef composite fill:#2a1f00
 
     class SceneNode {
       <<abstract>>
@@ -4255,10 +4244,6 @@ class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
     呼び出し側から見ると、何重にラップされていても同じ <code>IWeapon</code> です。</p>`,
 
   diagram: `classDiagram
-    classDef iface     fill:#0d2137
-    classDef concrete  fill:#0d2410
-    classDef decBase   fill:#1a2f45
-    classDef decorator fill:#1e0d37
 
     class IWeapon {
       <<interface>>
@@ -4501,9 +4486,6 @@ source.Play();</code></pre>
     サブシステムの変更は Facade 内部だけに閉じ込められます。</p>`,
 
   diagram: `classDiagram
-    classDef client    fill:#1c2128
-    classDef facade    fill:#1a2f45
-    classDef subsystem fill:#1f1200
 
     class Client { +someGameLogic() }
     class AudioFacade {
@@ -4720,9 +4702,6 @@ class Bullet {
     <code>BulletType</code>（テクスチャ・速度・ダメージ）を共有し、位置・向きは外部に持ちます。</p>`,
 
   diagram: `classDiagram
-    classDef factory   fill:#1a2f45
-    classDef flyweight fill:#2a1f00
-    classDef context   fill:#0d2410
 
     class BulletTypeRegistry {
       -cache Dictionary
@@ -4948,10 +4927,6 @@ public class EnemySpawner : MonoBehaviour
     ロギングやアクセス制御もここに透過的に追加できます。</p>`,
 
   diagram: `classDiagram
-    classDef client fill:#1c2128
-    classDef iface  fill:#0d2137
-    classDef real   fill:#0d2410
-    classDef proxy  fill:#1e0d37
 
     class Client { +useTexture() }
     class ITexture {
