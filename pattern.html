@@ -44,6 +44,30 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    background:           '#161b22',
+    mainBkg:              '#1c2128',
+    nodeBorder:           '#30363d',
+    clusterBkg:           '#161b22',
+    titleColor:           '#e6edf3',
+    lineColor:            '#8b949e',
+    primaryColor:         '#1c2128',
+    primaryTextColor:     '#e6edf3',
+    primaryBorderColor:   '#30363d',
+    secondaryColor:       '#21262d',
+    tertiaryColor:        '#21262d',
+    edgeLabelBackground:  '#161b22',
+    fontFamily:           'ui-monospace, SFMono-Regular, Consolas, monospace',
+    fontSize:             '13px',
+  },
+  classDiagram: { useMaxWidth: true },
+});
+</script>
 <script src="assets/js/sidebar.js"></script>
 <script src="assets/js/pattern-content.js"></script>
 <script src="assets/js/main.js"></script>
@@ -138,10 +162,13 @@ function renderPattern(p) {
       </div>
     </section>` : '';
 
+  const isMermaid = p.diagram && /^\s*(classDiagram|graph|flowchart|sequenceDiagram|erDiagram)/.test(p.diagram);
   const diagramSection = p.diagram ? `
     <section class="section">
       <h2>📐 構造図</h2>
-      <div class="diagram">${escHtml(p.diagram)}</div>
+      ${isMermaid
+        ? `<div class="mermaid-wrap"><pre class="mermaid">${p.diagram.trim()}</pre></div>`
+        : `<div class="diagram">${escHtml(p.diagram)}</div>`}
     </section>` : '';
 
   const antipatternSection = p.antipattern ? `
@@ -233,6 +260,9 @@ function renderPattern(p) {
   initCopyButtons();
   initQuiz();
   initHighlight();
+  if (typeof mermaid !== 'undefined') {
+    mermaid.run({ querySelector: '.mermaid' });
+  }
 }
 
 /* ─── フォールバック：patterns.json のメタデータで準備中ページ表示 ── */

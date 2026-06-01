@@ -3598,24 +3598,27 @@ interface IAudioService {
       <li>テスト時はモックアダプターに差し替え可能</li>
     </ul>`,
 
-  diagram: `
-  ┌─────────────────────────────────────────────────────┐
-  │  Client (GameCode)                                  │
-  │   IAudioService.Play("shoot")                       │
-  └──────────────┬──────────────────────────────────────┘
-                 │ uses
-  ┌──────────────▼──────────────────────────────────────┐
-  │  <<interface>> IAudioService                        │
-  │  + Play(clipName: string)                           │
-  │  + Stop(clipName: string)                           │
-  └──────────────┬──────────────────────────────────────┘
-                 │ implements
-  ┌──────────────▼──────────────────────────────────────┐
-  │  ExternalAudioAdapter  ◄── Adapter                  │
-  │  - _lib: ExternalAudio                              │
-  │  + Play(clipName) → _lib.PlaySound(path, 1f)       │
-  │  + Stop(clipName) → _lib.StopAllSounds()           │
-  └──────────────────────────────────────────────────────┘`,
+  diagram: `classDiagram
+    class Client {
+      +Shoot()
+    }
+    class IAudioService {
+      <<interface>>
+      +Play(clipName)
+      +Stop(clipName)
+    }
+    class ExternalAudioAdapter {
+      -lib : ExternalAudio
+      +Play(clipName)
+      +Stop(clipName)
+    }
+    class ExternalAudio {
+      +PlaySound(filePath, vol)
+      +StopAllSounds()
+    }
+    Client --> IAudioService : uses
+    IAudioService <|.. ExternalAudioAdapter : implements
+    ExternalAudioAdapter --> ExternalAudio : wraps`,
 
   csharpCode: `// ── 既存の（変更できない）外部ライブラリ ──────────────────
 public class ExternalAudio
@@ -3789,25 +3792,34 @@ class BowMobile : Weapon { }
       <li>組み合わせは実行時にコンストラクタで注入</li>
     </ul>`,
 
-  diagram: `
-  ┌────────────────────────────────────────────────────────┐
-  │  Abstraction (Weapon)                                  │
-  │  - _renderer: IRenderer  ← bridge                     │
-  │  + Attack()                                            │
-  └───┬───────────────────────────────────────────────────┘
-      │ extends          │ extends
-  ┌───▼───┐          ┌───▼───┐
-  │ Sword │          │  Bow  │   ← 武器の種類は独立して拡張
-  └───────┘          └───────┘
-
-  ┌────────────────────────────────────────────────────────┐
-  │  <<interface>> IRenderer                               │
-  │  + Draw(weaponName, position)                          │
-  └───┬───────────────────────────────────────────────────┘
-      │ implements       │ implements
-  ┌───▼─────┐       ┌────▼──────┐
-  │PCRenderer│       │MobileRend │  ← レンダラーも独立して拡張
-  └──────────┘       └───────────┘`,
+  diagram: `classDiagram
+    class Weapon {
+      <<abstract>>
+      -renderer : IRenderer
+      +MoveTo(x, y)
+      +Attack()
+    }
+    class Sword {
+      +Attack()
+    }
+    class Bow {
+      +Attack()
+    }
+    class IRenderer {
+      <<interface>>
+      +Draw(name, pos)
+    }
+    class PCRenderer {
+      +Draw(name, pos)
+    }
+    class MobileRenderer {
+      +Draw(name, pos)
+    }
+    Weapon <|-- Sword : extends
+    Weapon <|-- Bow : extends
+    Weapon o-- IRenderer : bridge
+    IRenderer <|.. PCRenderer : implements
+    IRenderer <|.. MobileRenderer : implements`,
 
   csharpCode: `// ── 実装レイヤー（Implementor）──────────────────────────
 public interface IRenderer
@@ -3997,23 +4009,27 @@ void Update(Node node) {
     コンテナは子の集合に対して再帰的に同じ操作を委譲します。
     呼び出し側はツリーの深さを意識せずに操作できます。</p>`,
 
-  diagram: `
-  ┌────────────────────────────────┐
-  │  <<abstract>> SceneNode        │
-  │  + Update(dt)                  │
-  │  + Render()                    │
-  └───┬────────────────────────────┘
-      │
-  ┌───┴────────────────────────────────────────┐
-  │                                            │
-  ▼                                            ▼
-┌──────────────┐                 ┌───────────────────────────┐
-│  Leaf        │                 │  Group (Composite)         │
-│  (Mesh/Sprite)│                 │  - children: List<Node>    │
-│  + Update(dt)│                 │  + Add/Remove(node)         │
-│  + Render()  │                 │  + Update(dt) → 子に委譲  │
-└──────────────┘                 └───────────────────────────┘
-                                    ↑ 再帰的に子を持てる`,
+  diagram: `classDiagram
+    class SceneNode {
+      <<abstract>>
+      +Name : string
+      +Update(dt)
+      +Render(depth)
+    }
+    class MeshNode {
+      +Update(dt)
+      +Render(depth)
+    }
+    class GroupNode {
+      -children : List~SceneNode~
+      +Add(node)
+      +Remove(node)
+      +Update(dt)
+      +Render(depth)
+    }
+    SceneNode <|-- MeshNode : extends
+    SceneNode <|-- GroupNode : extends
+    GroupNode o-- SceneNode : children (recursive)`,
 
   csharpCode: `// ── コンポーネントインターフェース ──────────────────────
 public abstract class SceneNode
@@ -4219,25 +4235,41 @@ class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
     コンストラクタに本体を渡してネストします。
     呼び出し側から見ると、何重にラップされていても同じ <code>IWeapon</code> です。</p>`,
 
-  diagram: `
-  ┌───────────────────────┐
-  │  <<interface>> IWeapon │
-  │  + GetDamage(): float  │
-  │  + GetName(): string   │
-  └──┬────────────────────┘
-     │ implements           │ extends (Decorator base)
-  ┌──▼─────┐           ┌────▼──────────────────────────────┐
-  │  Sword  │           │  WeaponDecorator                  │
-  │ (Leaf)  │           │  - _wrapped: IWeapon              │
-  └─────────┘           │  + GetDamage() → _wrapped.Get()  │
-                        └───┬───────────────────────────────┘
-                            │ extends
-               ┌────────────┴────────────────┐
-               ▼                             ▼
-      ┌──────────────────┐       ┌───────────────────┐
-      │  FlameDecorator  │       │  DoubleDecorator   │
-      │  +5 fire damage  │       │  ×2 base damage    │
-      └──────────────────┘       └───────────────────┘`,
+  diagram: `classDiagram
+    class IWeapon {
+      <<interface>>
+      +GetDamage() float
+      +GetName() string
+    }
+    class Sword {
+      +GetDamage() float
+      +GetName() string
+    }
+    class WeaponDecorator {
+      <<abstract>>
+      -wrapped : IWeapon
+      +GetDamage() float
+      +GetName() string
+    }
+    class FlameDecorator {
+      -bonus : float
+      +GetDamage() float
+      +GetName() string
+    }
+    class DoubleStrikeDecorator {
+      +GetDamage() float
+      +GetName() string
+    }
+    class LifestealDecorator {
+      +GetDamage() float
+      +GetLifesteal() float
+    }
+    IWeapon <|.. Sword : implements
+    IWeapon <|.. WeaponDecorator : implements
+    WeaponDecorator o-- IWeapon : wraps
+    WeaponDecorator <|-- FlameDecorator : extends
+    WeaponDecorator <|-- DoubleStrikeDecorator : extends
+    WeaponDecorator <|-- LifestealDecorator : extends`,
 
   csharpCode: `// ── コンポーネントインターフェース ──────────────────────
 public interface IWeapon
@@ -4438,21 +4470,34 @@ source.Play();</code></pre>
     シンプルなメソッドにまとめます。
     サブシステムの変更は Facade 内部だけに閉じ込められます。</p>`,
 
-  diagram: `
-  Client
-    │
-    │  AudioFacade.Play("shoot")
-    ▼
-  ┌──────────────────────────────────────────────┐
-  │  AudioFacade  （Facade）                      │
-  │  + Play(name)                                │
-  │  + StopAll()                                 │
-  │  + SetVolume(vol)                            │
-  └──┬──────────────┬────────────────┬───────────┘
-     │              │                │
-     ▼              ▼                ▼
-  ResourceLoader  AudioPool     VolumeManager
-  (Load/Unload)   (Pool管理)    (SFX/BGM分離)`,
+  diagram: `classDiagram
+    class Client {
+      +someGameLogic()
+    }
+    class AudioFacade {
+      +Play(clipName)
+      +SetSFXVolume(vol)
+      +StopAll()
+    }
+    class ResourceLoader {
+      +Load(name) string
+    }
+    class AudioPool {
+      +GetFreeSource() int
+    }
+    class VolumeManager {
+      +SFX : float
+      +BGM : float
+      +SetSFX(vol)
+    }
+    class AudioMixer {
+      +Apply(sourceId, volume)
+    }
+    Client --> AudioFacade : simple call
+    AudioFacade --> ResourceLoader
+    AudioFacade --> AudioPool
+    AudioFacade --> VolumeManager
+    AudioFacade --> AudioMixer`,
 
   csharpCode: `// ── サブシステム群（それぞれ複雑な内部を持つ）──────────
 public class ResourceLoader
@@ -4646,25 +4691,29 @@ class Bullet {
     <p>「変わらない共有データ（内部状態 = Intrinsic）」と「個々に異なるデータ（外部状態 = Extrinsic）」を分離します。
     <code>BulletType</code>（テクスチャ・速度・ダメージ）を共有し、位置・向きは外部に持ちます。</p>`,
 
-  diagram: `
-  ┌──────────────────────────────────────────────┐
-  │  FlyweightFactory（BulletTypeRegistry）       │
-  │  - _cache: Dictionary<string, BulletType>    │
-  │  + GetType(key): BulletType  ← 共有インスタンス│
-  └──────────────┬───────────────────────────────┘
-                 │ 返す（既存があれば再利用）
-  ┌──────────────▼──────────────────────────────┐
-  │  BulletType（Flyweight / 内部状態）            │
-  │  + TextureName: string  (共有)               │
-  │  + Speed: float         (共有)               │
-  │  + Damage: int          (共有)               │
-  │  + Draw(pos, dir)                           │
-  └──────────────────────────────────────────────┘
-
-  外部状態（Extrinsic）── Bullet インスタンスが持つ
-  + Position: Vector3
-  + Direction: Vector3
-  + _type: BulletType（共有参照）`,
+  diagram: `classDiagram
+    class BulletTypeRegistry {
+      -cache : Dictionary~string, BulletType~
+      +GetOrCreate(key, speed, damage) BulletType
+      +CachedCount : int
+    }
+    class BulletType {
+      <<Flyweight - 内部状態>>
+      +TextureName : string
+      +Speed : float
+      +Damage : int
+      +Draw(pos, dir)
+    }
+    class Bullet {
+      <<Context - 外部状態>>
+      +Position : Vector2
+      +Direction : Vector2
+      -type : BulletType
+      +Update(dt)
+      +Draw()
+    }
+    BulletTypeRegistry --> BulletType : creates or reuses
+    Bullet --> BulletType : shared reference`,
 
   csharpCode: `// ── Flyweight（内部状態：共有される不変データ）──────────
 public class BulletType
@@ -4865,22 +4914,38 @@ public class EnemySpawner : MonoBehaviour
     最初にアクセスされたときだけ本物を生成（Lazy Init）します。
     ロギングやアクセス制御もここに透過的に追加できます。</p>`,
 
-  diagram: `
-  Client
-    │ ITexture.GetPixels()
-    ▼
-  ┌─────────────────────────────────────────┐
-  │  LazyTextureProxy   ← Proxy            │
-  │  - _real: RealTexture? = null           │
-  │  + GetPixels()                          │
-  │    → if _real == null: _real = Load()  │
-  │    → return _real.GetPixels()          │
-  └───────────────┬─────────────────────────┘
-                  │ 初回アクセス時だけ生成
-  ┌───────────────▼─────────────────────────┐
-  │  RealTexture  ← 本物（重い）             │
-  │  + GetPixels(): Color[]                 │
-  └──────────────────────────────────────────┘`,
+  diagram: `classDiagram
+    class Client {
+      +useTexture()
+    }
+    class ITexture {
+      <<interface>>
+      +Width : int
+      +Height : int
+      +GetPixels() string[]
+    }
+    class RealTexture {
+      +Width : int
+      +Height : int
+      +GetPixels() string[]
+    }
+    class LazyTextureProxy {
+      -real : RealTexture
+      +Width : int
+      +Height : int
+      +GetPixels() string[]
+    }
+    class LoggingTextureProxy {
+      -inner : ITexture
+      -accessCount : int
+      +GetPixels() string[]
+    }
+    Client --> ITexture : uses
+    ITexture <|.. RealTexture : implements
+    ITexture <|.. LazyTextureProxy : implements
+    ITexture <|.. LoggingTextureProxy : implements
+    LazyTextureProxy --> RealTexture : lazy init on first access
+    LoggingTextureProxy --> ITexture : wraps any ITexture`,
 
   csharpCode: `// ── 共通インターフェース ─────────────────────────────────
 public interface ITexture

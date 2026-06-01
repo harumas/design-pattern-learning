@@ -631,6 +631,27 @@ pre code.hljs {
   white-space: pre;
 }
 
+/* ── Mermaid diagram wrapper ────────────────────────────────── */
+.mermaid-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1rem;
+  overflow-x: auto;
+  text-align: center;
+}
+.mermaid-wrap .mermaid {
+  display: inline-block;
+  text-align: left;
+  max-width: 100%;
+}
+/* Mermaid が生成する SVG のフォントを統一 */
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+  font-family: var(--font-sans) !important;
+}
+
 /* ── Cheatsheet ──────────────────────────────────────────────── */
 .cheat-table {
   width: 100%;
