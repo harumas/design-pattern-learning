@@ -3558,6 +3558,1533 @@ public class AchievementSystem : MonoBehaviour
   ],
 },
 
+
+/* ============================================================
+   🧱 GoF 構造パターン（Structural）
+   ============================================================ */
+
+// ─────────────────────────────────────────────
+'adapter': {
+  name: 'Adapter',
+  nameJa: 'アダプター',
+  category: 'structural',
+  difficulty: 1,
+  gameFrequency: 2,
+  tags: ['ラッパー', '互換性', 'インターフェース変換', '外部ライブラリ'],
+  summary: '互換性のないインターフェースを持つクラスを、クライアントが期待するインターフェースに変換する。外部ライブラリや既存コードを「そのまま」使えるようにするラッパー。',
+
+  problem: `
+    <p>物理エンジン・音声ライブラリ・ネットワーク SDK など、外部コードのインターフェースは
+    自分のゲームが期待する形と違うことがほとんどです。</p>
+    <pre><code>// 外部の音声ライブラリ（変更できない）
+class ExternalAudio {
+    public void PlaySound(string filePath, float vol) { ... }
+    public void StopAllSounds() { ... }
+}
+
+// ゲーム側が期待するインターフェース
+interface IAudioService {
+    void Play(string clipName);
+    void Stop(string clipName);
+}</code></pre>
+    <p>インターフェースが合わず、ゲームコード中に外部ライブラリ固有の呼び出しが散在すると
+    ライブラリ変更時に全体を修正しなければなりません。</p>`,
+
+  solution: `
+    <p><strong>アダプタークラス</strong>を挟んで、外部インターフェースをゲームが期待する形に変換します。</p>
+    <ul>
+      <li>ゲームコードは <code>IAudioService</code> だけを知る</li>
+      <li>ライブラリを差し替えるときはアダプターだけを書き換えればよい</li>
+      <li>テスト時はモックアダプターに差し替え可能</li>
+    </ul>`,
+
+  diagram: `
+  ┌─────────────────────────────────────────────────────┐
+  │  Client (GameCode)                                  │
+  │   IAudioService.Play("shoot")                       │
+  └──────────────┬──────────────────────────────────────┘
+                 │ uses
+  ┌──────────────▼──────────────────────────────────────┐
+  │  <<interface>> IAudioService                        │
+  │  + Play(clipName: string)                           │
+  │  + Stop(clipName: string)                           │
+  └──────────────┬──────────────────────────────────────┘
+                 │ implements
+  ┌──────────────▼──────────────────────────────────────┐
+  │  ExternalAudioAdapter  ◄── Adapter                  │
+  │  - _lib: ExternalAudio                              │
+  │  + Play(clipName) → _lib.PlaySound(path, 1f)       │
+  │  + Stop(clipName) → _lib.StopAllSounds()           │
+  └──────────────────────────────────────────────────────┘`,
+
+  csharpCode: `// ── 既存の（変更できない）外部ライブラリ ──────────────────
+public class ExternalAudio
+{
+    public void PlaySound(string filePath, float volume)
+        => Console.WriteLine($"[Ext] Play {filePath} vol={volume}");
+
+    public void StopAllSounds()
+        => Console.WriteLine("[Ext] Stop all");
+}
+
+// ── ゲームが期待するインターフェース ───────────────────────
+public interface IAudioService
+{
+    void Play(string clipName);
+    void Stop(string clipName);
+}
+
+// ── アダプター：外部ライブラリを IAudioService に変換 ──────
+public class ExternalAudioAdapter : IAudioService
+{
+    private readonly ExternalAudio _lib;
+    private readonly string _basePath;
+
+    public ExternalAudioAdapter(ExternalAudio lib, string basePath = "sounds/")
+    {
+        _lib = lib;
+        _basePath = basePath;
+    }
+
+    public void Play(string clipName)
+        => _lib.PlaySound(_basePath + clipName + ".wav", 1.0f);
+
+    public void Stop(string clipName)
+        => _lib.StopAllSounds();   // 外部ライブラリが個別停止非対応の例
+}
+
+// ── ゲームコード（IAudioService しか知らない）─────────────
+public class Player
+{
+    private readonly IAudioService _audio;
+
+    public Player(IAudioService audio) => _audio = audio;
+
+    public void Shoot()
+    {
+        Console.WriteLine("Player shoots!");
+        _audio.Play("shoot");
+    }
+}
+
+// ── 使用例 ────────────────────────────────────────────────
+var adapter = new ExternalAudioAdapter(new ExternalAudio());
+var player  = new Player(adapter);
+player.Shoot();
+// Player shoots!
+// [Ext] Play sounds/shoot.wav vol=1`,
+
+  unityCode: `// Unity での Adapter 活用例：
+// Addressables/Resources など複数のロード方式をアダプターで吸収する
+
+using UnityEngine;
+
+// ── ゲームが依存するインターフェース ────────────────────────
+public interface IAssetLoader
+{
+    AudioClip LoadClip(string key);
+}
+
+// ── Resources.Load アダプター ────────────────────────────
+public class ResourcesLoader : IAssetLoader
+{
+    public AudioClip LoadClip(string key)
+        => Resources.Load<AudioClip>("Sounds/" + key);
+}
+
+// ── Addressables アダプター（将来の差し替え用） ───────────
+// public class AddressablesLoader : IAssetLoader
+// {
+//     public AudioClip LoadClip(string key)
+//         => Addressables.LoadAssetAsync<AudioClip>(key).WaitForCompletion();
+// }
+
+// ── 使う側のコンポーネント ───────────────────────────────
+public class AudioManager : MonoBehaviour
+{
+    [SerializeField] private AudioSource _source;
+
+    private IAssetLoader _loader;
+
+    void Awake()
+    {
+        // Resources 版を使う。Addressables 版に変えても AudioManager は触らない
+        _loader = new ResourcesLoader();
+    }
+
+    public void Play(string clipName)
+    {
+        var clip = _loader.LoadClip(clipName);
+        if (clip != null) _source.PlayOneShot(clip);
+    }
+}`,
+
+  pros: [
+    '既存クラスを変更せずに再利用できる（OCP 準拠）',
+    '外部ライブラリへの依存を一箇所に集約できる',
+    'テスト時にモックアダプターに差し替えやすい',
+    'ライブラリ変更の影響範囲がアダプタークラスのみに限定される',
+  ],
+  cons: [
+    '単純な変換でもクラスが1つ増える',
+    '変換ロジックが複雑になると Facade パターンとの使い分けが難しくなる',
+    '多段アダプター（アダプターのアダプター）は混乱の元',
+  ],
+  antipattern: `
+    <p>アダプターの中に変換以外のビジネスロジックを書くと保守が困難になります。
+    アダプターは「インターフェースの変換だけ」に徹し、ロジックはそれぞれのクラスに置きましょう。
+    複数の外部システムをまとめて扱いたい場合は <strong>Facade</strong> を使ってください。</p>`,
+  related: ['facade', 'decorator', 'proxy'],
+  quiz: [
+    {
+      q: 'Adapter パターンの主な目的はどれですか？',
+      options: [
+        'オブジェクトの生成方法を隠蔽する',
+        '互換性のないインターフェースを変換して再利用する',
+        'オブジェクトへのアクセスを制御する',
+        'アルゴリズムを交換可能にする',
+      ],
+      answer: 1,
+      explanation: 'Adapter はクライアントが期待するインターフェースに合わせて既存クラスを「変換」するパターンです。',
+    },
+    {
+      q: 'ゲーム開発で Adapter が最も活躍する場面はどれですか？',
+      options: [
+        'NPCの行動を毎フレーム更新する',
+        '物理・音声・入力などの外部ライブラリをゲームコードから切り離す',
+        '大量の弾丸オブジェクトを効率よく使い回す',
+        'セーブデータをファイルに書き込む',
+      ],
+      answer: 1,
+      explanation: '外部ライブラリのAPIを IAudioService などの自前インターフェースに変換することで、ライブラリ交換の影響をアダプター1クラスに封じ込められます。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'bridge': {
+  name: 'Bridge',
+  nameJa: 'ブリッジ',
+  category: 'structural',
+  difficulty: 2,
+  gameFrequency: 2,
+  tags: ['抽象', '実装', '分離', 'プラットフォーム', '継承爆発'],
+  summary: '抽象（何をするか）と実装（どうやるか）を独立して変化させられるよう橋渡しする。継承ツリーの爆発的増加を防ぎ、プラットフォーム対応などに威力を発揮する。',
+
+  problem: `
+    <p>「武器の種類」と「武器のレンダリング方法（PC/Mobile）」を組み合わせたい場合、
+    継承で対応すると組み合わせ爆発が起きます。</p>
+    <pre><code>class SwordPC   : Weapon { }
+class SwordMobile : Weapon { }
+class BowPC     : Weapon { }
+class BowMobile : Weapon { }
+// 武器 × プラットフォーム = クラス数が掛け算で増える</code></pre>`,
+
+  solution: `
+    <p>「武器」という<strong>抽象レイヤー</strong>と「レンダラー」という<strong>実装レイヤー</strong>を
+    別の継承ツリーに分け、抽象側が実装への参照（ブリッジ）を持ちます。</p>
+    <ul>
+      <li>武器の追加 → <code>Weapon</code> を継承するだけ</li>
+      <li>プラットフォームの追加 → <code>IRenderer</code> を実装するだけ</li>
+      <li>組み合わせは実行時にコンストラクタで注入</li>
+    </ul>`,
+
+  diagram: `
+  ┌────────────────────────────────────────────────────────┐
+  │  Abstraction (Weapon)                                  │
+  │  - _renderer: IRenderer  ← bridge                     │
+  │  + Attack()                                            │
+  └───┬───────────────────────────────────────────────────┘
+      │ extends          │ extends
+  ┌───▼───┐          ┌───▼───┐
+  │ Sword │          │  Bow  │   ← 武器の種類は独立して拡張
+  └───────┘          └───────┘
+
+  ┌────────────────────────────────────────────────────────┐
+  │  <<interface>> IRenderer                               │
+  │  + Draw(weaponName, position)                          │
+  └───┬───────────────────────────────────────────────────┘
+      │ implements       │ implements
+  ┌───▼─────┐       ┌────▼──────┐
+  │PCRenderer│       │MobileRend │  ← レンダラーも独立して拡張
+  └──────────┘       └───────────┘`,
+
+  csharpCode: `// ── 実装レイヤー（Implementor）──────────────────────────
+public interface IRenderer
+{
+    void Draw(string weaponName, (float x, float y) pos);
+}
+
+public class PCRenderer : IRenderer
+{
+    public void Draw(string name, (float x, float y) pos)
+        => Console.WriteLine($"[PC  ] 高解像度で {name} を ({pos.x:F0},{pos.y:F0}) に描画");
+}
+
+public class MobileRenderer : IRenderer
+{
+    public void Draw(string name, (float x, float y) pos)
+        => Console.WriteLine($"[Mobile] 省電力レンダリングで {name} を ({pos.x:F0},{pos.y:F0}) に描画");
+}
+
+// ── 抽象レイヤー（Abstraction）───────────────────────────
+public abstract class Weapon
+{
+    protected readonly IRenderer _renderer;
+    protected (float x, float y) Position;
+
+    protected Weapon(IRenderer renderer) => _renderer = renderer;
+
+    public abstract void Attack();
+    public void MoveTo(float x, float y) => Position = (x, y);
+}
+
+public class Sword : Weapon
+{
+    public Sword(IRenderer renderer) : base(renderer) { }
+
+    public override void Attack()
+    {
+        Console.WriteLine("Sword: 斬撃！");
+        _renderer.Draw("Sword", Position);
+    }
+}
+
+public class Bow : Weapon
+{
+    public Bow(IRenderer renderer) : base(renderer) { }
+
+    public override void Attack()
+    {
+        Console.WriteLine("Bow: 矢を放つ！");
+        _renderer.Draw("Bow", Position);
+    }
+}
+
+// ── 使用例：組み合わせは実行時に決まる ─────────────────────
+IRenderer renderer = new PCRenderer();          // PC 向け
+
+Weapon sword = new Sword(renderer);
+sword.MoveTo(100, 200);
+sword.Attack();
+// Sword: 斬撃！
+// [PC  ] 高解像度で Sword を (100,200) に描画
+
+Weapon bow = new Bow(new MobileRenderer());     // モバイル向け
+bow.MoveTo(50, 80);
+bow.Attack();
+// Bow: 矢を放つ！
+// [Mobile] 省電力レンダリングで Bow を (50,80) に描画`,
+
+  unityCode: `// Unity での Bridge 活用例：
+// レンダリングバックエンド（URP/HDRP/Legacy）の差異を吸収する
+
+using UnityEngine;
+
+// ── レンダリング実装インターフェース ─────────────────────
+public interface IParticleRenderer
+{
+    void Spawn(string effectName, Vector3 position);
+}
+
+public class URPParticleRenderer : IParticleRenderer
+{
+    public void Spawn(string effectName, Vector3 position)
+    {
+        var prefab = Resources.Load<GameObject>($"Effects/URP/{effectName}");
+        if (prefab) Object.Instantiate(prefab, position, Quaternion.identity);
+        Debug.Log($"[URP] Spawned {effectName} at {position}");
+    }
+}
+
+public class LegacyParticleRenderer : IParticleRenderer
+{
+    public void Spawn(string effectName, Vector3 position)
+    {
+        var prefab = Resources.Load<GameObject>($"Effects/Legacy/{effectName}");
+        if (prefab) Object.Instantiate(prefab, position, Quaternion.identity);
+        Debug.Log($"[Legacy] Spawned {effectName} at {position}");
+    }
+}
+
+// ── 抽象：エフェクト種別 ──────────────────────────────
+public abstract class VisualEffect
+{
+    protected readonly IParticleRenderer _renderer;
+    protected VisualEffect(IParticleRenderer renderer) => _renderer = renderer;
+    public abstract void Play(Vector3 position);
+}
+
+public class ExplosionEffect : VisualEffect
+{
+    public ExplosionEffect(IParticleRenderer r) : base(r) { }
+    public override void Play(Vector3 pos)
+    {
+        Debug.Log("Explosion triggered!");
+        _renderer.Spawn("explosion_01", pos);
+    }
+}
+
+// ── GameManager などで組み合わせを注入 ─────────────────
+public class EffectManager : MonoBehaviour
+{
+    private VisualEffect _hitEffect;
+
+    void Start()
+    {
+        // GraphicsSettings などから判定して実装を切り替え
+        IParticleRenderer renderer = new URPParticleRenderer();
+        _hitEffect = new ExplosionEffect(renderer);
+    }
+
+    public void PlayExplosion(Vector3 pos) => _hitEffect.Play(pos);
+}`,
+
+  pros: [
+    '抽象と実装を独立して拡張でき、継承ツリーの爆発を防ぐ',
+    '実行時にレンダラーや実装を差し替えられる（Strategy に近い柔軟性）',
+    'プラットフォーム固有コードを実装側に閉じ込められる',
+  ],
+  cons: [
+    'コードが複数レイヤーに分かれるため、初見で追いにくい',
+    '抽象と実装が密結合な場合は過剰設計になる',
+    '小規模では Adapter だけで十分なことが多い',
+  ],
+  antipattern: `
+    <p>「あとで分岐が増えるかも」という予測で先行して Bridge を導入するのはやり過ぎです。
+    現時点で「Aの種類」×「Bの種類」が実際に掛け算になっているときに使いましょう。
+    単純な実装の差し替えなら <strong>Strategy</strong> パターンで十分です。</p>`,
+  related: ['adapter', 'strategy', 'abstract-factory'],
+  quiz: [
+    {
+      q: 'Bridge パターンが「継承爆発」を防ぐ仕組みはどれですか？',
+      options: [
+        'すべてのクラスをひとつに統合する',
+        '抽象と実装を別の継承ツリーに分けてコンポジションで繋ぐ',
+        'テンプレートメソッドで共通処理を基底に移す',
+        'インターフェースをなくして動的ディスパッチを使う',
+      ],
+      answer: 1,
+      explanation: '抽象（何をするか）と実装（どうするか）を別ツリーに分け、橋渡し（ブリッジ）の参照で繋ぐことで、組み合わせ数がクラス数の和になります（掛け算ではなく）。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'composite': {
+  name: 'Composite',
+  nameJa: 'コンポジット',
+  category: 'structural',
+  difficulty: 2,
+  gameFrequency: 3,
+  tags: ['ツリー', '階層', 'シーングラフ', 'UI', '再帰'],
+  summary: '個々のオブジェクトとそのグループ（コンテナ）を同一インターフェースで扱う。シーングラフ・UIツリー・スキルシステムなど、ゲームのあらゆる階層構造に使われる。',
+
+  problem: `
+    <p>ゲームのシーンは親子関係のツリー構造です。「ノード一つ」と「子を持つノード」を
+    別々に扱うと、操作するたびに <code>if (node is Group) { ... }</code> の分岐が必要になります。</p>
+    <pre><code>// 扱いにくい例
+void Update(Node node) {
+    if (node is GroupNode g) {
+        foreach (var child in g.Children) Update(child);
+    } else {
+        node.Update();  // 葉ノード
+    }
+}</code></pre>`,
+
+  solution: `
+    <p>葉（Leaf）とコンテナ（Composite）に<strong>同じインターフェース</strong>を持たせ、
+    コンテナは子の集合に対して再帰的に同じ操作を委譲します。
+    呼び出し側はツリーの深さを意識せずに操作できます。</p>`,
+
+  diagram: `
+  ┌────────────────────────────────┐
+  │  <<abstract>> SceneNode        │
+  │  + Update(dt)                  │
+  │  + Render()                    │
+  └───┬────────────────────────────┘
+      │
+  ┌───┴────────────────────────────────────────┐
+  │                                            │
+  ▼                                            ▼
+┌──────────────┐                 ┌───────────────────────────┐
+│  Leaf        │                 │  Group (Composite)         │
+│  (Mesh/Sprite)│                 │  - children: List<Node>    │
+│  + Update(dt)│                 │  + Add/Remove(node)         │
+│  + Render()  │                 │  + Update(dt) → 子に委譲  │
+└──────────────┘                 └───────────────────────────┘
+                                    ↑ 再帰的に子を持てる`,
+
+  csharpCode: `// ── コンポーネントインターフェース ──────────────────────
+public abstract class SceneNode
+{
+    public string Name { get; }
+    protected SceneNode(string name) => Name = name;
+
+    public abstract void Update(float dt);
+    public abstract void Render(int depth = 0);
+}
+
+// ── 葉ノード（Leaf）─────────────────────────────────────
+public class MeshNode : SceneNode
+{
+    public MeshNode(string name) : base(name) { }
+
+    public override void Update(float dt)
+        => Console.WriteLine($"  MeshNode [{Name}] 物理更新 dt={dt:F3}");
+
+    public override void Render(int depth = 0)
+        => Console.WriteLine($"{new string(' ', depth * 2)}📦 Mesh: {Name}");
+}
+
+// ── 複合ノード（Composite）──────────────────────────────
+public class GroupNode : SceneNode
+{
+    private readonly List<SceneNode> _children = new();
+
+    public GroupNode(string name) : base(name) { }
+
+    public void Add(SceneNode node) => _children.Add(node);
+    public void Remove(SceneNode node) => _children.Remove(node);
+
+    public override void Update(float dt)
+    {
+        Console.WriteLine($"Group [{Name}] Update →");
+        foreach (var child in _children) child.Update(dt);   // 再帰委譲
+    }
+
+    public override void Render(int depth = 0)
+    {
+        Console.WriteLine($"{new string(' ', depth * 2)}📁 Group: {Name}");
+        foreach (var child in _children) child.Render(depth + 1);
+    }
+}
+
+// ── 使用例：シーングラフの構築 ─────────────────────────
+var root = new GroupNode("Scene");
+
+var player = new GroupNode("Player");
+player.Add(new MeshNode("Body"));
+player.Add(new MeshNode("Sword"));
+
+var enemy = new MeshNode("Enemy");
+
+root.Add(player);
+root.Add(enemy);
+
+Console.WriteLine("=== Render ===");
+root.Render();
+// 📁 Group: Scene
+//   📁 Group: Player
+//     📦 Mesh: Body
+//     📦 Mesh: Sword
+//   📦 Mesh: Enemy
+
+Console.WriteLine("\n=== Update ===");
+root.Update(0.016f);  // 全ノードが再帰的に更新される`,
+
+  unityCode: `// Unity は GameObject / Transform がまさに Composite パターンの実装。
+// ここではスキルツリーの例を示します。
+
+using System.Collections.Generic;
+using UnityEngine;
+
+// ── スキルコンポーネント基底 ─────────────────────────────
+public abstract class SkillNode
+{
+    public string SkillName { get; }
+    protected SkillNode(string name) => SkillName = name;
+
+    public abstract float GetDamageBonus();
+    public abstract void PrintTree(int depth = 0);
+}
+
+// ── 単体スキル（葉）──────────────────────────────────────
+public class SingleSkill : SkillNode
+{
+    private readonly float _bonus;
+    public SingleSkill(string name, float bonus) : base(name) => _bonus = bonus;
+
+    public override float GetDamageBonus() => _bonus;
+    public override void PrintTree(int depth)
+        => Debug.Log($"{new string('-', depth * 2)}⚔️ {SkillName}: +{_bonus}");
+}
+
+// ── スキルセット（複合）──────────────────────────────────
+public class SkillSet : SkillNode
+{
+    private readonly List<SkillNode> _skills = new();
+    public SkillSet(string name) : base(name) { }
+
+    public void Add(SkillNode s) => _skills.Add(s);
+
+    // 子スキル全体のボーナス合計を再帰計算
+    public override float GetDamageBonus()
+    {
+        float total = 0;
+        foreach (var s in _skills) total += s.GetDamageBonus();
+        return total;
+    }
+
+    public override void PrintTree(int depth = 0)
+    {
+        Debug.Log($"{new string('-', depth * 2)}📚 {SkillName}");
+        foreach (var s in _skills) s.PrintTree(depth + 1);
+    }
+}
+
+// ── 使用例 ───────────────────────────────────────────────
+public class SkillManager : MonoBehaviour
+{
+    void Start()
+    {
+        var warrior = new SkillSet("Warrior Skills");
+        var basic   = new SkillSet("Basic");
+        basic.Add(new SingleSkill("Strike",       5f));
+        basic.Add(new SingleSkill("Heavy Strike", 10f));
+
+        var advanced = new SkillSet("Advanced");
+        advanced.Add(new SingleSkill("Whirlwind", 20f));
+
+        warrior.Add(basic);
+        warrior.Add(advanced);
+        warrior.Add(new SingleSkill("Battle Cry", 3f));
+
+        warrior.PrintTree();
+        Debug.Log($"Total damage bonus: {warrior.GetDamageBonus()}");  // 38
+    }
+}`,
+
+  pros: [
+    '葉とコンテナを同一インターフェースで扱えるため呼び出し側がシンプル',
+    '再帰的な木構造を自然に表現できる',
+    '新しい種類のノードを追加しても既存コードに影響しない（OCP）',
+  ],
+  cons: [
+    '葉にしか意味のない操作（子の追加など）をインターフェースに載せると型安全性が下がる',
+    '深いツリーで再帰が深くなるとスタックオーバーフローのリスク',
+    '単純な一覧管理に使うと過剰設計',
+  ],
+  antipattern: `
+    <p>コンテナのみが持つべき操作（Add・Remove）を基底インターフェースに入れると、
+    葉ノードに「実装できない操作」が生まれます。
+    アクセスを型チェックで分岐させるくらいなら、最初から Composite を使わない方がマシです。</p>`,
+  related: ['decorator', 'visitor', 'iterator', 'component'],
+  quiz: [
+    {
+      q: 'Composite パターンの本質的な特徴はどれですか？',
+      options: [
+        '葉とコンテナに同じインターフェースを持たせ、再帰的に操作を委譲する',
+        '子クラスを動的にインスタンス化するファクトリを提供する',
+        'オブジェクトの状態変化をすべての購読者に通知する',
+        'アルゴリズムの各ステップを個別に差し替えられるようにする',
+      ],
+      answer: 0,
+      explanation: '葉（個）とコンテナ（グループ）に共通インターフェースを持たせ、コンテナが子に再帰的に処理を委譲するのが Composite の本質です。',
+    },
+    {
+      q: 'Unity の Transform 階層は Composite パターンですか？',
+      options: [
+        'いいえ。Transform は Singleton パターンである',
+        'はい。親 Transform はその子 Transform を再帰的に管理する',
+        'いいえ。Transform は Observer パターンを使っている',
+        'はい。ただし葉ノードのみで構成されている',
+      ],
+      answer: 1,
+      explanation: 'Unity の Transform は親が子を持ち、SetParent で階層化できます。これはまさに Composite パターンの実装例です。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'decorator': {
+  name: 'Decorator',
+  nameJa: 'デコレーター',
+  category: 'structural',
+  difficulty: 2,
+  gameFrequency: 2,
+  tags: ['ラッパー', '動的拡張', 'バフ', 'アビリティ', '継承代替'],
+  summary: 'オブジェクトを「ラッパー」でくるんで機能を動的に付加する。クラスを変更せず、継承を使わずに振る舞いを重ね掛けできる。バフ・装備・エフェクト合成に最適。',
+
+  problem: `
+    <p>キャラクターに「炎属性付加」「ダメージ2倍」「吸血」などのバフを自由に組み合わせて
+    掛けたい場合、継承で表現すると組み合わせ爆発が起きます。</p>
+    <pre><code>class Sword { }
+class FlameSword      : Sword { }
+class DoubleSword     : Sword { }
+class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
+
+  solution: `
+    <p>各バフを「同じインターフェースを持つラッパー」として実装し、
+    コンストラクタに本体を渡してネストします。
+    呼び出し側から見ると、何重にラップされていても同じ <code>IWeapon</code> です。</p>`,
+
+  diagram: `
+  ┌───────────────────────┐
+  │  <<interface>> IWeapon │
+  │  + GetDamage(): float  │
+  │  + GetName(): string   │
+  └──┬────────────────────┘
+     │ implements           │ extends (Decorator base)
+  ┌──▼─────┐           ┌────▼──────────────────────────────┐
+  │  Sword  │           │  WeaponDecorator                  │
+  │ (Leaf)  │           │  - _wrapped: IWeapon              │
+  └─────────┘           │  + GetDamage() → _wrapped.Get()  │
+                        └───┬───────────────────────────────┘
+                            │ extends
+               ┌────────────┴────────────────┐
+               ▼                             ▼
+      ┌──────────────────┐       ┌───────────────────┐
+      │  FlameDecorator  │       │  DoubleDecorator   │
+      │  +5 fire damage  │       │  ×2 base damage    │
+      └──────────────────┘       └───────────────────┘`,
+
+  csharpCode: `// ── コンポーネントインターフェース ──────────────────────
+public interface IWeapon
+{
+    float GetDamage();
+    string GetName();
+}
+
+// ── 具体コンポーネント（Leaf）───────────────────────────
+public class Sword : IWeapon
+{
+    public float  GetDamage() => 10f;
+    public string GetName()   => "Sword";
+}
+
+// ── デコレーター基底 ─────────────────────────────────────
+public abstract class WeaponDecorator : IWeapon
+{
+    protected readonly IWeapon _wrapped;
+    protected WeaponDecorator(IWeapon weapon) => _wrapped = weapon;
+
+    public virtual float  GetDamage() => _wrapped.GetDamage();
+    public virtual string GetName()   => _wrapped.GetName();
+}
+
+// ── 具体デコレーター：炎属性 ─────────────────────────────
+public class FlameDecorator : WeaponDecorator
+{
+    private readonly float _bonus;
+    public FlameDecorator(IWeapon weapon, float bonus = 5f)
+        : base(weapon) => _bonus = bonus;
+
+    public override float  GetDamage() => base.GetDamage() + _bonus;
+    public override string GetName()   => base.GetName() + " [Flame]";
+}
+
+// ── 具体デコレーター：ダメージ2倍 ───────────────────────
+public class DoubleStrikeDecorator : WeaponDecorator
+{
+    public DoubleStrikeDecorator(IWeapon weapon) : base(weapon) { }
+
+    public override float  GetDamage() => base.GetDamage() * 2f;
+    public override string GetName()   => base.GetName() + " [×2]";
+}
+
+// ── 具体デコレーター：吸血 ──────────────────────────────
+public class LifestealDecorator : WeaponDecorator
+{
+    public LifestealDecorator(IWeapon weapon) : base(weapon) { }
+
+    public override float  GetDamage() => base.GetDamage();
+    public override string GetName()   => base.GetName() + " [吸血]";
+
+    public float GetLifesteal() => base.GetDamage() * 0.2f;  // 20% 吸血
+}
+
+// ── 使用例：動的に重ね掛け ──────────────────────────────
+IWeapon sword = new Sword();
+Console.WriteLine($"{sword.GetName()} : {sword.GetDamage()} dmg");
+// Sword : 10 dmg
+
+IWeapon flamed = new FlameDecorator(sword);
+Console.WriteLine($"{flamed.GetName()} : {flamed.GetDamage()} dmg");
+// Sword [Flame] : 15 dmg
+
+IWeapon ultimate = new DoubleStrikeDecorator(new FlameDecorator(new Sword()));
+Console.WriteLine($"{ultimate.GetName()} : {ultimate.GetDamage()} dmg");
+// Sword [Flame] [×2] : 30 dmg`,
+
+  unityCode: `// Unity での Decorator 活用例：スキル・ステータスへのバフ重ね掛け
+
+using System.Collections.Generic;
+using UnityEngine;
+
+public interface IAttack
+{
+    float Execute(GameObject target);
+}
+
+public class BasicAttack : IAttack
+{
+    public float Execute(GameObject target)
+    {
+        Debug.Log($"通常攻撃 → {target.name}");
+        return 10f;
+    }
+}
+
+// ── バフデコレーター基底 ──────────────────────────────────
+public abstract class AttackDecorator : IAttack
+{
+    protected readonly IAttack _inner;
+    protected AttackDecorator(IAttack inner) => _inner = inner;
+    public abstract float Execute(GameObject target);
+}
+
+// ── 属性付加 ─────────────────────────────────────────────
+public class ElementalBuff : AttackDecorator
+{
+    private readonly string _element;
+    private readonly float  _bonusPct;
+
+    public ElementalBuff(IAttack inner, string element, float bonusPct)
+        : base(inner) { _element = element; _bonusPct = bonusPct; }
+
+    public override float Execute(GameObject target)
+    {
+        float dmg = _inner.Execute(target);
+        float bonus = dmg * _bonusPct;
+        Debug.Log($"  + {_element}属性 +{bonus:F1}");
+        return dmg + bonus;
+    }
+}
+
+// ── クリティカル ─────────────────────────────────────────
+public class CriticalHit : AttackDecorator
+{
+    public CriticalHit(IAttack inner) : base(inner) { }
+
+    public override float Execute(GameObject target)
+    {
+        float dmg = _inner.Execute(target) * 2f;
+        Debug.Log($"  CRITICAL! ×2 → {dmg}");
+        return dmg;
+    }
+}
+
+// ── 使用例 ───────────────────────────────────────────────
+public class BattleTest : MonoBehaviour
+{
+    void Start()
+    {
+        var enemy = new GameObject("Slime");
+
+        // 炎属性 + クリティカルを重ね掛け
+        IAttack attack = new CriticalHit(
+                           new ElementalBuff(
+                             new BasicAttack(), "炎", 0.5f));
+
+        float damage = attack.Execute(enemy);
+        Debug.Log($"最終ダメージ: {damage}");  // 通常10 + 炎5 = 15 → クリ ×2 = 30
+    }
+}`,
+
+  pros: [
+    '継承を使わず動的に機能を追加・除去できる',
+    '単一責任の原則：各デコレーターは1つの責務だけを持つ',
+    'バフの組み合わせが自由自在で、クラス数が線形に増えるだけ',
+  ],
+  cons: [
+    '多重ラップで構造が複雑になりデバッグしにくい',
+    '特定の具体型に依存するコードとの相性が悪い（キャストが必要になる）',
+    '順番依存の場合（A→B と B→A で結果が変わる）は設計に注意が必要',
+  ],
+  antipattern: `
+    <p>デコレーターをネストしすぎると「どこで何が起きているか」が追えなくなります。
+    4〜5層を超えるようなら、<strong>バフリスト＋合算計算</strong>のようなデータ駆動アプローチが
+    有効です（例: RPGのステータス計算）。順番依存が強い場合は Chain of Responsibility を検討してください。</p>`,
+  related: ['composite', 'strategy', 'chain-of-responsibility'],
+  quiz: [
+    {
+      q: 'Decorator パターンが継承より優れている点はどれですか？',
+      options: [
+        'メモリ使用量が減る',
+        '実行時に動的に機能を追加・除去でき、組み合わせが自由',
+        'コードの行数が減る',
+        '型安全性が高くなる',
+      ],
+      answer: 1,
+      explanation: '継承は静的（コンパイル時）ですが Decorator は実行時に任意のラッパーを重ねられます。組み合わせ数がクラス数の積ではなく和で済む点が最大の利点です。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'facade': {
+  name: 'Facade',
+  nameJa: 'ファサード',
+  category: 'structural',
+  difficulty: 1,
+  gameFrequency: 3,
+  tags: ['シンプル化', 'サブシステム', 'API設計', 'ゲームマネージャー'],
+  summary: '複数のサブシステムへのアクセスを、シンプルな単一インターフェースで覆い隠す。GameManager や AudioManager など「窓口を一本化する」どこのゲームにも登場するパターン。',
+
+  problem: `
+    <p>ゲームの「サウンド再生」ひとつとっても、実際は多くのサブシステムが絡みます。</p>
+    <pre><code>// Facade なし：呼び出し元が複雑な手順を知っている
+var clip = resourceLoader.Load("shoot");
+var source = audioPool.GetFreeSource();
+source.clip = clip;
+source.volume = volumeManager.GetSFXVolume();
+mixer.ApplySettings(source);
+source.Play();</code></pre>
+    <p>すべての呼び出し箇所で同じ手順を書くことになり、変更に弱くなります。</p>`,
+
+  solution: `
+    <p>複雑な手順を <code>AudioFacade.Play("shoot")</code> のような
+    シンプルなメソッドにまとめます。
+    サブシステムの変更は Facade 内部だけに閉じ込められます。</p>`,
+
+  diagram: `
+  Client
+    │
+    │  AudioFacade.Play("shoot")
+    ▼
+  ┌──────────────────────────────────────────────┐
+  │  AudioFacade  （Facade）                      │
+  │  + Play(name)                                │
+  │  + StopAll()                                 │
+  │  + SetVolume(vol)                            │
+  └──┬──────────────┬────────────────┬───────────┘
+     │              │                │
+     ▼              ▼                ▼
+  ResourceLoader  AudioPool     VolumeManager
+  (Load/Unload)   (Pool管理)    (SFX/BGM分離)`,
+
+  csharpCode: `// ── サブシステム群（それぞれ複雑な内部を持つ）──────────
+public class ResourceLoader
+{
+    public string Load(string name)
+    {
+        Console.WriteLine($"  [Loader] '{name}' をロード");
+        return $"clip:{name}";
+    }
+}
+
+public class AudioPool
+{
+    private int _nextId = 1;
+    public int GetFreeSource()
+    {
+        Console.WriteLine($"  [Pool] ソースID {_nextId} を確保");
+        return _nextId++;
+    }
+}
+
+public class VolumeManager
+{
+    public float SFX { get; private set; } = 0.8f;
+    public float BGM { get; private set; } = 0.5f;
+    public void SetSFX(float v) { SFX = v; Console.WriteLine($"  [Volume] SFX = {v}"); }
+}
+
+public class AudioMixer
+{
+    public void Apply(int sourceId, float volume)
+        => Console.WriteLine($"  [Mixer] ソース{sourceId} に vol={volume} 適用");
+}
+
+// ── Facade：「音を鳴らす」という操作をひとつにまとめる ──
+public class AudioFacade
+{
+    private readonly ResourceLoader _loader  = new();
+    private readonly AudioPool      _pool    = new();
+    private readonly VolumeManager  _volume  = new();
+    private readonly AudioMixer     _mixer   = new();
+
+    public void Play(string clipName)
+    {
+        Console.WriteLine($"[AudioFacade] Play: {clipName}");
+        var clip   = _loader.Load(clipName);
+        int src    = _pool.GetFreeSource();
+        _mixer.Apply(src, _volume.SFX);
+        Console.WriteLine($"  → 再生: {clip} (src={src})");
+    }
+
+    public void SetSFXVolume(float vol) => _volume.SetSFX(vol);
+
+    public void StopAll() => Console.WriteLine("[AudioFacade] 全停止");
+}
+
+// ── 呼び出し側：Facade だけを知ればよい ─────────────────
+var audio = new AudioFacade();
+audio.Play("shoot");
+// [AudioFacade] Play: shoot
+//   [Loader] 'shoot' をロード
+//   [Pool] ソースID 1 を確保
+//   [Mixer] ソース1 に vol=0.8 適用
+//   → 再生: clip:shoot (src=1)
+
+audio.Play("explosion");
+audio.SetSFXVolume(0.5f);`,
+
+  unityCode: `// Unity での Facade 活用例：ゲームの初期化・遷移を一本化する
+
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+// ── サブシステム（各マネージャー）───────────────────────
+public class SaveSystem
+{
+    public void SaveProgress(string key, int value)
+        => PlayerPrefs.SetInt(key, value);
+    public int LoadProgress(string key, int def = 0)
+        => PlayerPrefs.GetInt(key, def);
+}
+
+public class Analytics
+{
+    public void Track(string eventName)
+        => Debug.Log($"[Analytics] {eventName}");
+}
+
+public class FadeScreen
+{
+    public System.Collections.IEnumerator FadeOut(float dur)
+    {
+        yield return new UnityEngine.WaitForSeconds(dur);
+        Debug.Log("[Fade] FadeOut 完了");
+    }
+}
+
+// ── GameFacade：ゲーム操作の窓口 ─────────────────────────
+public class GameFacade : MonoBehaviour
+{
+    private SaveSystem _save       = new();
+    private Analytics  _analytics  = new();
+    private FadeScreen _fade       = new();
+
+    // ゲームオーバー処理：複数サブシステムを順番に呼ぶだけ
+    public void GameOver(int score)
+    {
+        _save.SaveProgress("high_score", score);
+        _analytics.Track("game_over");
+        StartCoroutine(LoadMenuAfterFade());
+    }
+
+    private System.Collections.IEnumerator LoadMenuAfterFade()
+    {
+        yield return StartCoroutine(_fade.FadeOut(0.5f));
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    // ゲーム開始処理
+    public void StartGame(string sceneName)
+    {
+        _analytics.Track("game_start");
+        SceneManager.LoadScene(sceneName);
+    }
+}`,
+
+  pros: [
+    '呼び出し側が複雑なサブシステムを知らずに済む（情報隠蔽）',
+    'サブシステムの変更影響が Facade 内に閉じ込められる',
+    'コードの可読性と再利用性が大幅に上がる',
+    'ゲームでは GameManager・AudioManager・UIManager が典型例',
+  ],
+  cons: [
+    'Facade 自体が「神クラス」化するリスクがある',
+    'Facade を通さないとサブシステムを細かく制御できない',
+    '完全な隠蔽は難しく、特殊ケースで Facade を破って直接呼ぶことも出てくる',
+  ],
+  antipattern: `
+    <p>Facade がすべての機能を抱え込み、1000行を超える「神クラス」になるのはアンチパターンです。
+    Facade は「頻繁に使う操作の窓口」に限定し、細かい制御はサブシステムを直接使えるように
+    しておくのが健全な設計です。</p>`,
+  related: ['adapter', 'mediator', 'service-locator'],
+  quiz: [
+    {
+      q: 'Facade パターンの主な目的はどれですか？',
+      options: [
+        '同じオブジェクトを複数作成せずに共有する',
+        '複数のサブシステムをシンプルな単一インターフェースで覆う',
+        'オブジェクトの状態変化を他に通知する',
+        'アルゴリズムをステップに分解して差し替えられるようにする',
+      ],
+      answer: 1,
+      explanation: 'Facade は「窓口を一本化して複雑さを隠す」パターンです。GameManager や AudioManager がその典型例です。',
+    },
+    {
+      q: 'Facade のアンチパターンとして正しいものはどれですか？',
+      options: [
+        'Facade を複数のクラスに分割する',
+        'Facade が神クラス化しすべてのロジックを抱え込む',
+        'サブシステムを直接利用できるようにしておく',
+        'Facade に対してインターフェースを定義する',
+      ],
+      answer: 1,
+      explanation: 'Facade は「窓口」であって「全機能の実装場所」ではありません。肥大化したらサブシステムへの責務分散を検討しましょう。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'flyweight': {
+  name: 'Flyweight',
+  nameJa: 'フライウェイト',
+  category: 'structural',
+  difficulty: 3,
+  gameFrequency: 3,
+  tags: ['メモリ最適化', '共有', '大量オブジェクト', 'インスタンス化コスト', 'キャッシュ'],
+  summary: '多数のオブジェクトに共通する状態（内部状態）を共有することでメモリを節約する。弾丸・木・パーティクルなど同じ外見の大量オブジェクトに必須の最適化パターン。',
+
+  problem: `
+    <p>10,000発の弾丸を管理するとき、各弾丸がテクスチャ・メッシュ・エフェクト設定などを
+    個別に持つと膨大なメモリを消費します。</p>
+    <pre><code>// 毎回コピーされる例（1オブジェクト = 数MB）
+class Bullet {
+    Texture2D texture;    // 重い！全弾丸で共有すべき
+    Mesh mesh;            // 重い！全弾丸で共有すべき
+    float speed;          // 軽い（個別で OK）
+    Vector3 position;     // 個別（外部状態）
+}</code></pre>`,
+
+  solution: `
+    <p>「変わらない共有データ（内部状態 = Intrinsic）」と「個々に異なるデータ（外部状態 = Extrinsic）」を分離します。
+    <code>BulletType</code>（テクスチャ・速度・ダメージ）を共有し、位置・向きは外部に持ちます。</p>`,
+
+  diagram: `
+  ┌──────────────────────────────────────────────┐
+  │  FlyweightFactory（BulletTypeRegistry）       │
+  │  - _cache: Dictionary<string, BulletType>    │
+  │  + GetType(key): BulletType  ← 共有インスタンス│
+  └──────────────┬───────────────────────────────┘
+                 │ 返す（既存があれば再利用）
+  ┌──────────────▼──────────────────────────────┐
+  │  BulletType（Flyweight / 内部状態）            │
+  │  + TextureName: string  (共有)               │
+  │  + Speed: float         (共有)               │
+  │  + Damage: int          (共有)               │
+  │  + Draw(pos, dir)                           │
+  └──────────────────────────────────────────────┘
+
+  外部状態（Extrinsic）── Bullet インスタンスが持つ
+  + Position: Vector3
+  + Direction: Vector3
+  + _type: BulletType（共有参照）`,
+
+  csharpCode: `// ── Flyweight（内部状態：共有される不変データ）──────────
+public class BulletType
+{
+    public string TextureName { get; }
+    public float  Speed       { get; }
+    public int    Damage      { get; }
+
+    public BulletType(string texture, float speed, int damage)
+    {
+        TextureName = texture;
+        Speed       = speed;
+        Damage      = damage;
+        Console.WriteLine($"  [BulletType] 作成: {texture}");  // 実際は1回しか呼ばれない
+    }
+
+    public void Draw((float x, float y) pos, (float dx, float dy) dir)
+        => Console.WriteLine($"  Draw [{TextureName}] pos=({pos.x:F0},{pos.y:F0}) dir=({dir.dx:F1},{dir.dy:F1})");
+}
+
+// ── Flyweight Factory：共有インスタンスを管理 ──────────────
+public class BulletTypeRegistry
+{
+    private readonly Dictionary<string, BulletType> _cache = new();
+
+    public BulletType GetOrCreate(string key, float speed, int damage)
+    {
+        if (!_cache.TryGetValue(key, out var type))
+        {
+            type = new BulletType(key, speed, damage);
+            _cache[key] = type;
+        }
+        return type;
+    }
+
+    public int CachedCount => _cache.Count;
+}
+
+// ── Context（外部状態：個々に異なるデータ）────────────────
+public class Bullet
+{
+    public (float x, float y) Position;
+    public (float dx, float dy) Direction;
+    private readonly BulletType _type;  // 共有参照
+
+    public Bullet(BulletType type, (float x, float y) pos, (float dx, float dy) dir)
+    {
+        _type     = type;
+        Position  = pos;
+        Direction = dir;
+    }
+
+    public void Update(float dt)
+    {
+        Position = (Position.x + Direction.dx * _type.Speed * dt,
+                    Position.y + Direction.dy * _type.Speed * dt);
+    }
+
+    public void Draw() => _type.Draw(Position, Direction);
+}
+
+// ── 使用例：10,000発でも BulletType は3種類しか作られない ──
+var registry = new BulletTypeRegistry();
+
+// BulletType は3種類だけ作成される
+var normalType = registry.GetOrCreate("bullet_normal", 300f, 10);
+var fireType   = registry.GetOrCreate("bullet_fire",   200f, 20);
+var _          = registry.GetOrCreate("bullet_normal", 300f, 10); // キャッシュから返る
+
+Console.WriteLine($"BulletType キャッシュ数: {registry.CachedCount}"); // 2
+
+// 弾丸は1万発でも、BulletType の参照は共有
+var bullets = new List<Bullet>();
+var rng = new Random(42);
+for (int i = 0; i < 10000; i++)
+{
+    var type = (i % 3 == 0) ? fireType : normalType;
+    bullets.Add(new Bullet(type,
+        ((float)rng.NextDouble() * 800, (float)rng.NextDouble() * 600),
+        ((float)(rng.NextDouble() * 2 - 1), 1f)));
+}
+
+Console.WriteLine($"弾丸数: {bullets.Count}, BulletType 種類: {registry.CachedCount}");
+// 弾丸数: 10000, BulletType 種類: 2`,
+
+  unityCode: `// Unity での Flyweight：Mesh / Material を共有してドローコールを削減
+
+using System.Collections.Generic;
+using UnityEngine;
+
+// ── 共有データ（Flyweight）─────────────────────────────────
+[CreateAssetMenu(fileName = "EnemyType", menuName = "Game/EnemyType")]
+public class EnemyTypeSO : ScriptableObject
+{
+    public string TypeName;
+    public Mesh   SharedMesh;
+    public Material SharedMaterial;
+    public float  MaxHp;
+    public float  MoveSpeed;
+    // テクスチャ・メッシュ・パラメータを全インスタンスで共有
+}
+
+// ── 外部状態（Context）────────────────────────────────────
+public class EnemyInstance : MonoBehaviour
+{
+    [HideInInspector] public EnemyTypeSO Type;  // 共有参照
+    public float CurrentHp;                     // 個別状態
+    public Vector3 Velocity;                    // 個別状態
+
+    public void Init(EnemyTypeSO type)
+    {
+        Type = type;
+        CurrentHp = type.MaxHp;
+        GetComponent<MeshFilter>().sharedMesh = type.SharedMesh;
+        GetComponent<MeshRenderer>().sharedMaterial = type.SharedMaterial;
+        // sharedMesh / sharedMaterial → GPU上でも共有 = ドローコール削減
+    }
+
+    void Update()
+    {
+        transform.position += Velocity * Type.MoveSpeed * Time.deltaTime;
+    }
+}
+
+// ── EnemySpawner ───────────────────────────────────────────
+public class EnemySpawner : MonoBehaviour
+{
+    [SerializeField] private EnemyTypeSO[] _types;
+    [SerializeField] private GameObject    _prefab;
+
+    public void Spawn(int typeIndex, Vector3 pos)
+    {
+        var go  = Instantiate(_prefab, pos, Quaternion.identity);
+        var enemy = go.GetComponent<EnemyInstance>();
+        enemy.Init(_types[typeIndex]);  // 型データは共有
+    }
+}`,
+
+  pros: [
+    '大量の同種オブジェクトのメモリ使用量を劇的に削減できる',
+    'ScriptableObject と相性が良く、Unity で自然に使えるパターン',
+    'GPU Instancing / DrawMeshInstanced と組み合わせるとさらに高速化できる',
+  ],
+  cons: [
+    '内部状態と外部状態の分離設計が複雑になることがある',
+    '外部状態を毎回引数で渡す必要があり、コード量が増える場合がある',
+    'マルチスレッド環境での共有状態の変更には注意が必要',
+  ],
+  antipattern: `
+    <p>Flyweight は「大量かつ同種のオブジェクト」があって初めて効果があります。
+    数十個程度であれば通常のオブジェクト管理で十分です。
+    また、共有している BulletType を誤って変更してしまうと全インスタンスに影響が出ます。
+    共有オブジェクトは必ず <strong>不変（readonly / sealed）</strong>にしてください。</p>`,
+  related: ['object-pool', 'prototype', 'data-locality'],
+  quiz: [
+    {
+      q: 'Flyweight パターンで「内部状態（Intrinsic）」に分類すべきデータはどれですか？',
+      options: [
+        '弾丸の現在位置',
+        '弾丸の飛翔方向',
+        '弾丸の種類ごとのテクスチャ・速度',
+        '弾丸が最後にヒットした敵',
+      ],
+      answer: 2,
+      explanation: '内部状態は「全インスタンスで共有できる不変データ」です。テクスチャや速度は弾丸の種類ごとに固定なので共有できます。位置・方向は弾丸ごとに異なるので外部状態です。',
+    },
+    {
+      q: 'Unity の ScriptableObject と Flyweight の関係として正しいものはどれですか？',
+      options: [
+        '無関係。ScriptableObject は MonoBehaviour の代替品にすぎない',
+        'ScriptableObject は共有の不変データを保持するのに適しており Flyweight の実装として使える',
+        'ScriptableObject は Singleton パターンの実装のみに使う',
+        'ScriptableObject を使うと Flyweight より遅くなる',
+      ],
+      answer: 1,
+      explanation: 'ScriptableObject はアセットとして共有参照でき、sharedMesh / sharedMaterial のように GPU リソースも共有できるため、Flyweight の内部状態の格納先として非常に適しています。',
+    },
+  ],
+},
+
+// ─────────────────────────────────────────────
+'proxy': {
+  name: 'Proxy',
+  nameJa: 'プロキシ',
+  category: 'structural',
+  difficulty: 2,
+  gameFrequency: 2,
+  tags: ['遅延ロード', 'キャッシュ', 'アクセス制御', 'ロギング', 'ネットワーク'],
+  summary: '本物のオブジェクトと同じインターフェースを持つ代理人を挟み、アクセス制御・遅延初期化・キャッシュ・ロギングを透過的に追加する。',
+
+  problem: `
+    <p>巨大なリソース（テクスチャ・音声・AIモジュール）を起動直後から全部メモリに載せると
+    ロード時間が増え、使われないリソースが無駄になります。
+    また、ネットワーク越しのオブジェクト操作にローカルと同じコードを使いたい場面もあります。</p>`,
+
+  solution: `
+    <p>本物のオブジェクトと<strong>同じインターフェース</strong>を持つ Proxy を挟み、
+    最初にアクセスされたときだけ本物を生成（Lazy Init）します。
+    ロギングやアクセス制御もここに透過的に追加できます。</p>`,
+
+  diagram: `
+  Client
+    │ ITexture.GetPixels()
+    ▼
+  ┌─────────────────────────────────────────┐
+  │  LazyTextureProxy   ← Proxy            │
+  │  - _real: RealTexture? = null           │
+  │  + GetPixels()                          │
+  │    → if _real == null: _real = Load()  │
+  │    → return _real.GetPixels()          │
+  └───────────────┬─────────────────────────┘
+                  │ 初回アクセス時だけ生成
+  ┌───────────────▼─────────────────────────┐
+  │  RealTexture  ← 本物（重い）             │
+  │  + GetPixels(): Color[]                 │
+  └──────────────────────────────────────────┘`,
+
+  csharpCode: `// ── 共通インターフェース ─────────────────────────────────
+public interface ITexture
+{
+    int Width   { get; }
+    int Height  { get; }
+    string[] GetPixels();  // 重い操作の代表として
+}
+
+// ── 本物のオブジェクト（重い・遅い）────────────────────────
+public class RealTexture : ITexture
+{
+    public int Width  { get; }
+    public int Height { get; }
+    private readonly string[] _pixels;
+
+    public RealTexture(string fileName, int w, int h)
+    {
+        Width = w; Height = h;
+        Console.WriteLine($"  [RealTexture] '{fileName}' をディスクからロード中… (重い処理)");
+        System.Threading.Thread.Sleep(100);  // ロードの模擬
+        _pixels = new string[w * h];
+        Array.Fill(_pixels, "#FFFFFF");
+        Console.WriteLine($"  [RealTexture] ロード完了 {w}x{h}");
+    }
+
+    public string[] GetPixels() => _pixels;
+}
+
+// ── Proxy 1: 遅延初期化（Lazy Proxy）────────────────────────
+public class LazyTextureProxy : ITexture
+{
+    private readonly string _fileName;
+    private readonly int    _w, _h;
+    private RealTexture?    _real;
+
+    public int Width  => _w;
+    public int Height => _h;
+
+    public LazyTextureProxy(string fileName, int w, int h)
+    {
+        _fileName = fileName; _w = w; _h = h;
+        Console.WriteLine($"  [LazyProxy] '{fileName}' の Proxy 作成（まだロードしない）");
+    }
+
+    public string[] GetPixels()
+    {
+        _real ??= new RealTexture(_fileName, _w, _h);  // 初回のみロード
+        return _real.GetPixels();
+    }
+}
+
+// ── Proxy 2: ロギング Proxy ──────────────────────────────────
+public class LoggingTextureProxy : ITexture
+{
+    private readonly ITexture _inner;
+    private int _accessCount;
+
+    public int Width  => _inner.Width;
+    public int Height => _inner.Height;
+
+    public LoggingTextureProxy(ITexture inner) => _inner = inner;
+
+    public string[] GetPixels()
+    {
+        _accessCount++;
+        Console.WriteLine($"  [LogProxy] GetPixels 呼び出し #{_accessCount}");
+        var result = _inner.GetPixels();
+        Console.WriteLine($"  [LogProxy] 返却: {result.Length} ピクセル");
+        return result;
+    }
+}
+
+// ── 使用例 ────────────────────────────────────────────────────
+Console.WriteLine("=== Proxy 生成（ロードなし）===");
+ITexture tex = new LazyTextureProxy("background.png", 1920, 1080);
+
+Console.WriteLine("\n=== 初回アクセス（ここでロード）===");
+_ = tex.GetPixels();
+
+Console.WriteLine("\n=== 2回目（キャッシュ済み）===");
+_ = tex.GetPixels();
+
+Console.WriteLine("\n=== ロギング Proxy でラップ ===");
+ITexture logged = new LoggingTextureProxy(tex);
+_ = logged.GetPixels();`,
+
+  unityCode: `// Unity での Proxy 活用例：
+// リモートプレイヤーをローカルと同じインターフェースで操作する（Remote Proxy）
+
+using UnityEngine;
+
+// ── 共通インターフェース ──────────────────────────────────
+public interface IPlayer
+{
+    string PlayerName { get; }
+    void MoveTo(Vector3 position);
+    void TakeDamage(int amount);
+}
+
+// ── ローカルプレイヤー（本物）────────────────────────────
+public class LocalPlayer : MonoBehaviour, IPlayer
+{
+    public string PlayerName => "LocalPlayer";
+
+    public void MoveTo(Vector3 position)
+    {
+        transform.position = position;
+        Debug.Log($"[Local] {PlayerName} → {position}");
+    }
+
+    public void TakeDamage(int amount)
+    {
+        Debug.Log($"[Local] {PlayerName} が {amount} ダメージ");
+        // HP 計算など
+    }
+}
+
+// ── リモートプレイヤー Proxy（ネットワーク越しに操作）──────
+public class RemotePlayerProxy : IPlayer
+{
+    public string PlayerName { get; }
+    private Vector3 _lastPos;
+
+    // 実際は NetworkManager 経由でメッセージを送る
+    public RemotePlayerProxy(string name) => PlayerName = name;
+
+    public void MoveTo(Vector3 position)
+    {
+        _lastPos = position;
+        Debug.Log($"[Proxy] {PlayerName} の移動をサーバーへ送信: {position}");
+        // NetworkManager.Send(new MovePacket { PlayerName, position });
+    }
+
+    public void TakeDamage(int amount)
+    {
+        Debug.Log($"[Proxy] {PlayerName} のダメージをサーバーへ通知: {amount}");
+        // NetworkManager.Send(new DamagePacket { PlayerName, amount });
+    }
+}
+
+// ── ゲームロジック：ローカルもリモートも同じ型で扱う ──────
+public class GameLogic : MonoBehaviour
+{
+    private IPlayer[] _allPlayers;
+
+    void Start()
+    {
+        _allPlayers = new IPlayer[]
+        {
+            FindObjectOfType<LocalPlayer>(),         // 本物
+            new RemotePlayerProxy("RemotePlayer_A"), // Proxy
+            new RemotePlayerProxy("RemotePlayer_B"), // Proxy
+        };
+    }
+
+    public void DamageAll(int amount)
+    {
+        foreach (var p in _allPlayers)
+            p.TakeDamage(amount);  // ローカルもリモートも同じ呼び出し
+    }
+}`,
+
+  pros: [
+    '遅延初期化でロード時間を短縮できる',
+    'クライアントコードを変えずにアクセス制御・ロギング・キャッシュを追加できる',
+    'Remote Proxy でネットワーク越しのオブジェクトをローカルのように扱える',
+  ],
+  cons: [
+    'リクエストが Proxy を経由するため僅かなオーバーヘッドがある',
+    '多重 Proxy（遅延 + ロギング + キャッシュ）は Decorator との使い分けが曖昧になる',
+    '本物オブジェクトの生成タイミングが分かりにくくなる',
+  ],
+  antipattern: `
+    <p>すべてのクラスに「念のため Proxy」を挟むのはやり過ぎです。
+    実際に遅延初期化・アクセス制御・リモートアクセスが必要な場合に限定しましょう。
+    単なる機能追加なら <strong>Decorator</strong>、インターフェース変換なら <strong>Adapter</strong> を使う方が意図が明確です。</p>`,
+  related: ['adapter', 'decorator', 'facade'],
+  quiz: [
+    {
+      q: 'Lazy Proxy が解決する問題は何ですか？',
+      options: [
+        '複数のサブシステムを単一のインターフェースにまとめる',
+        '重いオブジェクトの生成を、実際に使われるまで遅らせる',
+        'オブジェクトに動的に機能を追加する',
+        '互換性のないインターフェースを変換する',
+      ],
+      answer: 1,
+      explanation: 'Lazy Proxy は最初のアクセス時だけ本物を生成することで、不要なロードを避けて起動時間を短縮します。',
+    },
+    {
+      q: 'Proxy と Decorator の主な違いはどれですか？',
+      options: [
+        'Proxy はパフォーマンス向上専用で Decorator は機能追加専用',
+        'Proxy はアクセス制御・遅延初期化が目的で Decorator は振る舞いの追加が目的',
+        'Proxy はインターフェースを変更するが Decorator は変更しない',
+        '違いはなく、同じパターンの別名である',
+      ],
+      answer: 1,
+      explanation: 'Proxy は本物オブジェクトへのアクセスをコントロールすることが目的。Decorator は機能（振る舞い）を動的に追加することが目的です。構造は似ていますが意図が異なります。',
+    },
+  ],
+},
+
 }; // window.PATTERNS 閉じ括弧
 
 
