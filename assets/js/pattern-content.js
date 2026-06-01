@@ -3599,6 +3599,11 @@ interface IAudioService {
     </ul>`,
 
   diagram: `classDiagram
+    classDef client   fill:#1c2128
+    classDef iface    fill:#0d2137
+    classDef adapter  fill:#1e0d37
+    classDef external fill:#1f1200
+
     class Client {
       +Shoot()
     }
@@ -3608,7 +3613,7 @@ interface IAudioService {
       +Stop(clipName)
     }
     class ExternalAudioAdapter {
-      -lib : ExternalAudio
+      -lib ExternalAudio
       +Play(clipName)
       +Stop(clipName)
     }
@@ -3618,7 +3623,11 @@ interface IAudioService {
     }
     Client --> IAudioService : uses
     IAudioService <|.. ExternalAudioAdapter : implements
-    ExternalAudioAdapter --> ExternalAudio : wraps`,
+    ExternalAudioAdapter --> ExternalAudio : wraps
+    class Client:::client
+    class IAudioService:::iface
+    class ExternalAudioAdapter:::adapter
+    class ExternalAudio:::external`,
 
   csharpCode: `// ── 既存の（変更できない）外部ライブラリ ──────────────────
 public class ExternalAudio
@@ -3793,33 +3802,36 @@ class BowMobile : Weapon { }
     </ul>`,
 
   diagram: `classDiagram
+    classDef abstraction fill:#1a2f45
+    classDef concrete    fill:#0d2410
+    classDef iface       fill:#0d2137
+    classDef impl        fill:#1c2128
+
     class Weapon {
       <<abstract>>
-      -renderer : IRenderer
+      -renderer IRenderer
       +MoveTo(x, y)
       +Attack()
     }
-    class Sword {
-      +Attack()
-    }
-    class Bow {
-      +Attack()
-    }
+    class Sword { +Attack() }
+    class Bow   { +Attack() }
     class IRenderer {
       <<interface>>
       +Draw(name, pos)
     }
-    class PCRenderer {
-      +Draw(name, pos)
-    }
-    class MobileRenderer {
-      +Draw(name, pos)
-    }
+    class PCRenderer     { +Draw(name, pos) }
+    class MobileRenderer { +Draw(name, pos) }
     Weapon <|-- Sword : extends
     Weapon <|-- Bow : extends
     Weapon o-- IRenderer : bridge
     IRenderer <|.. PCRenderer : implements
-    IRenderer <|.. MobileRenderer : implements`,
+    IRenderer <|.. MobileRenderer : implements
+    class Weapon:::abstraction
+    class Sword:::concrete
+    class Bow:::concrete
+    class IRenderer:::iface
+    class PCRenderer:::impl
+    class MobileRenderer:::impl`,
 
   csharpCode: `// ── 実装レイヤー（Implementor）──────────────────────────
 public interface IRenderer
@@ -4010,9 +4022,13 @@ void Update(Node node) {
     呼び出し側はツリーの深さを意識せずに操作できます。</p>`,
 
   diagram: `classDiagram
+    classDef component fill:#1a2f45
+    classDef leaf      fill:#0d2410
+    classDef composite fill:#2a1f00
+
     class SceneNode {
       <<abstract>>
-      +Name : string
+      +Name string
       +Update(dt)
       +Render(depth)
     }
@@ -4021,7 +4037,7 @@ void Update(Node node) {
       +Render(depth)
     }
     class GroupNode {
-      -children : List~SceneNode~
+      -children List~SceneNode~
       +Add(node)
       +Remove(node)
       +Update(dt)
@@ -4029,7 +4045,10 @@ void Update(Node node) {
     }
     SceneNode <|-- MeshNode : extends
     SceneNode <|-- GroupNode : extends
-    GroupNode o-- SceneNode : children (recursive)`,
+    GroupNode o-- SceneNode : children
+    class SceneNode:::component
+    class MeshNode:::leaf
+    class GroupNode:::composite`,
 
   csharpCode: `// ── コンポーネントインターフェース ──────────────────────
 public abstract class SceneNode
@@ -4236,6 +4255,11 @@ class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
     呼び出し側から見ると、何重にラップされていても同じ <code>IWeapon</code> です。</p>`,
 
   diagram: `classDiagram
+    classDef iface     fill:#0d2137
+    classDef concrete  fill:#0d2410
+    classDef decBase   fill:#1a2f45
+    classDef decorator fill:#1e0d37
+
     class IWeapon {
       <<interface>>
       +GetDamage() float
@@ -4247,12 +4271,12 @@ class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
     }
     class WeaponDecorator {
       <<abstract>>
-      -wrapped : IWeapon
+      -wrapped IWeapon
       +GetDamage() float
       +GetName() string
     }
     class FlameDecorator {
-      -bonus : float
+      -bonus float
       +GetDamage() float
       +GetName() string
     }
@@ -4269,7 +4293,13 @@ class FlameDoubleSword : Sword { }  // 爆発！</code></pre>`,
     WeaponDecorator o-- IWeapon : wraps
     WeaponDecorator <|-- FlameDecorator : extends
     WeaponDecorator <|-- DoubleStrikeDecorator : extends
-    WeaponDecorator <|-- LifestealDecorator : extends`,
+    WeaponDecorator <|-- LifestealDecorator : extends
+    class IWeapon:::iface
+    class Sword:::concrete
+    class WeaponDecorator:::decBase
+    class FlameDecorator:::decorator
+    class DoubleStrikeDecorator:::decorator
+    class LifestealDecorator:::decorator`,
 
   csharpCode: `// ── コンポーネントインターフェース ──────────────────────
 public interface IWeapon
@@ -4471,33 +4501,31 @@ source.Play();</code></pre>
     サブシステムの変更は Facade 内部だけに閉じ込められます。</p>`,
 
   diagram: `classDiagram
-    class Client {
-      +someGameLogic()
-    }
+    classDef client    fill:#1c2128
+    classDef facade    fill:#1a2f45
+    classDef subsystem fill:#1f1200
+
+    class Client { +someGameLogic() }
     class AudioFacade {
       +Play(clipName)
       +SetSFXVolume(vol)
       +StopAll()
     }
-    class ResourceLoader {
-      +Load(name) string
-    }
-    class AudioPool {
-      +GetFreeSource() int
-    }
-    class VolumeManager {
-      +SFX : float
-      +BGM : float
-      +SetSFX(vol)
-    }
-    class AudioMixer {
-      +Apply(sourceId, volume)
-    }
+    class ResourceLoader { +Load(name) string }
+    class AudioPool      { +GetFreeSource() int }
+    class VolumeManager  { +SetSFX(vol) }
+    class AudioMixer     { +Apply(srcId, vol) }
     Client --> AudioFacade : simple call
     AudioFacade --> ResourceLoader
     AudioFacade --> AudioPool
     AudioFacade --> VolumeManager
-    AudioFacade --> AudioMixer`,
+    AudioFacade --> AudioMixer
+    class Client:::client
+    class AudioFacade:::facade
+    class ResourceLoader:::subsystem
+    class AudioPool:::subsystem
+    class VolumeManager:::subsystem
+    class AudioMixer:::subsystem`,
 
   csharpCode: `// ── サブシステム群（それぞれ複雑な内部を持つ）──────────
 public class ResourceLoader
@@ -4692,28 +4720,33 @@ class Bullet {
     <code>BulletType</code>（テクスチャ・速度・ダメージ）を共有し、位置・向きは外部に持ちます。</p>`,
 
   diagram: `classDiagram
+    classDef factory   fill:#1a2f45
+    classDef flyweight fill:#2a1f00
+    classDef context   fill:#0d2410
+
     class BulletTypeRegistry {
-      -cache : Dictionary~string, BulletType~
-      +GetOrCreate(key, speed, damage) BulletType
-      +CachedCount : int
+      -cache Dictionary
+      +GetOrCreate(key) BulletType
+      +CachedCount int
     }
     class BulletType {
-      <<Flyweight - 内部状態>>
-      +TextureName : string
-      +Speed : float
-      +Damage : int
+      +TextureName string
+      +Speed float
+      +Damage int
       +Draw(pos, dir)
     }
     class Bullet {
-      <<Context - 外部状態>>
-      +Position : Vector2
-      +Direction : Vector2
-      -type : BulletType
+      +Position Vector2
+      +Direction Vector2
+      -type BulletType
       +Update(dt)
       +Draw()
     }
     BulletTypeRegistry --> BulletType : creates or reuses
-    Bullet --> BulletType : shared reference`,
+    Bullet --> BulletType : shared reference
+    class BulletTypeRegistry:::factory
+    class BulletType:::flyweight
+    class Bullet:::context`,
 
   csharpCode: `// ── Flyweight（内部状態：共有される不変データ）──────────
 public class BulletType
@@ -4915,37 +4948,45 @@ public class EnemySpawner : MonoBehaviour
     ロギングやアクセス制御もここに透過的に追加できます。</p>`,
 
   diagram: `classDiagram
-    class Client {
-      +useTexture()
-    }
+    classDef client fill:#1c2128
+    classDef iface  fill:#0d2137
+    classDef real   fill:#0d2410
+    classDef proxy  fill:#1e0d37
+
+    class Client { +useTexture() }
     class ITexture {
       <<interface>>
-      +Width : int
-      +Height : int
+      +Width int
+      +Height int
       +GetPixels() string[]
     }
     class RealTexture {
-      +Width : int
-      +Height : int
+      +Width int
+      +Height int
       +GetPixels() string[]
     }
     class LazyTextureProxy {
-      -real : RealTexture
-      +Width : int
-      +Height : int
+      -real RealTexture
+      +Width int
+      +Height int
       +GetPixels() string[]
     }
     class LoggingTextureProxy {
-      -inner : ITexture
-      -accessCount : int
+      -inner ITexture
+      -accessCount int
       +GetPixels() string[]
     }
     Client --> ITexture : uses
     ITexture <|.. RealTexture : implements
     ITexture <|.. LazyTextureProxy : implements
     ITexture <|.. LoggingTextureProxy : implements
-    LazyTextureProxy --> RealTexture : lazy init on first access
-    LoggingTextureProxy --> ITexture : wraps any ITexture`,
+    LazyTextureProxy --> RealTexture : lazy init
+    LoggingTextureProxy --> ITexture : wraps
+    class Client:::client
+    class ITexture:::iface
+    class RealTexture:::real
+    class LazyTextureProxy:::proxy
+    class LoggingTextureProxy:::proxy`,
 
   csharpCode: `// ── 共通インターフェース ─────────────────────────────────
 public interface ITexture

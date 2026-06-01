@@ -48,24 +48,36 @@
 <script>
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'dark',
+  theme: 'base',
+  useMaxWidth: false,
   themeVariables: {
-    background:           '#161b22',
-    mainBkg:              '#1c2128',
-    nodeBorder:           '#30363d',
-    clusterBkg:           '#161b22',
-    titleColor:           '#e6edf3',
+    /* ── 背景 ── */
+    background:           '#0d1117',
+    mainBkg:              '#161b22',
+    /* ── クラスノード ── */
+    primaryColor:         '#1a2f45',   /* ヘッダー背景（ダークブルー） */
+    primaryTextColor:     '#c9d1d9',   /* ヘッダー文字 */
+    primaryBorderColor:   '#58a6ff',   /* クラス枠線（ブルー） */
+    secondaryColor:       '#161b22',   /* ボディ背景 */
+    secondaryTextColor:   '#c9d1d9',
+    secondaryBorderColor: '#30363d',
+    tertiaryColor:        '#1c2128',
+    tertiaryTextColor:    '#c9d1d9',
+    tertiaryBorderColor:  '#30363d',
+    /* ── エッジ ── */
     lineColor:            '#8b949e',
-    primaryColor:         '#1c2128',
-    primaryTextColor:     '#e6edf3',
-    primaryBorderColor:   '#30363d',
-    secondaryColor:       '#21262d',
-    tertiaryColor:        '#21262d',
-    edgeLabelBackground:  '#161b22',
-    fontFamily:           'ui-monospace, SFMono-Regular, Consolas, monospace',
-    fontSize:             '13px',
+    edgeLabelBackground:  '#1c2128',
+    /* ── テキスト ── */
+    titleColor:           '#79c0ff',
+    classText:            '#c9d1d9',
+    fontFamily:           'system-ui, -apple-system, sans-serif',
+    fontSize:             '14px',
+    /* ── 属性行の交互背景 ── */
+    attributeBackgroundColorOdd:  '#0d1117',
+    attributeBackgroundColorEven: '#1c2128',
   },
-  classDiagram: { useMaxWidth: true },
+  classDiagram: { useMaxWidth: false },
+  flowchart:    { useMaxWidth: false },
 });
 </script>
 <script src="assets/js/sidebar.js"></script>
@@ -167,7 +179,7 @@ function renderPattern(p) {
     <section class="section">
       <h2>📐 構造図</h2>
       ${isMermaid
-        ? `<div class="mermaid-wrap"><pre class="mermaid">${p.diagram.trim()}</pre></div>`
+        ? `<div class="mermaid-wrap"><pre class="mermaid">${escHtml(p.diagram.trim())}</pre></div>`
         : `<div class="diagram">${escHtml(p.diagram)}</div>`}
     </section>` : '';
 

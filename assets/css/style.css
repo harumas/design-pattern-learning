@@ -636,21 +636,103 @@ pre code.hljs {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.5rem 1rem;
+  padding: 2rem 1.5rem;
   overflow-x: auto;
-  text-align: center;
 }
+/* .mermaid 要素が確実にブロック・フル幅になるように */
 .mermaid-wrap .mermaid {
-  display: inline-block;
-  text-align: left;
-  max-width: 100%;
+  display: block;
+  width: 100%;
+  min-height: 120px;
 }
-/* Mermaid が生成する SVG のフォントを統一 */
-.mermaid svg {
-  max-width: 100%;
-  height: auto;
-  font-family: var(--font-sans) !important;
+/* Mermaid が付与する max-width を解除して SVG を拡大 */
+.mermaid-wrap svg {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 200px;
 }
+/* ノード内テキストのデフォルト色 */
+.mermaid-wrap foreignObject div,
+.mermaid-wrap foreignObject span,
+.mermaid-wrap foreignObject p,
+.mermaid-wrap .label,
+.mermaid-wrap .nodeLabel {
+  color: #c9d1d9 !important;
+  font-size: 13px !important;
+  line-height: 1.4;
+  background: transparent !important;
+}
+/* エッジラベル */
+.mermaid-wrap .edgeLabel { color: #8b949e !important; background: transparent !important; }
+
+/* ── classDef 色分け（fill・stroke・color すべて CSS で制御）── */
+
+/* iface (interface) — ブルー */
+.mermaid-wrap g.node.iface rect,
+.mermaid-wrap g.node.iface polygon {
+  fill: #0d2137 !important; stroke: #58a6ff !important; stroke-width: 2px !important;
+}
+.mermaid-wrap g.node.iface foreignObject div { color: #79c0ff !important; }
+
+/* abstraction / facade / factory / decBase — スカイブルー */
+.mermaid-wrap g.node.abstraction rect,
+.mermaid-wrap g.node.facade rect,
+.mermaid-wrap g.node.factory rect,
+.mermaid-wrap g.node.decBase rect {
+  fill: #1a2f45 !important; stroke: #58a6ff !important; stroke-width: 2px !important;
+}
+.mermaid-wrap g.node.abstraction foreignObject div,
+.mermaid-wrap g.node.facade foreignObject div,
+.mermaid-wrap g.node.factory foreignObject div,
+.mermaid-wrap g.node.decBase foreignObject div { color: #79c0ff !important; }
+
+/* concrete / leaf / real / context — グリーン */
+.mermaid-wrap g.node.concrete rect,
+.mermaid-wrap g.node.leaf rect,
+.mermaid-wrap g.node.real rect,
+.mermaid-wrap g.node.context rect {
+  fill: #0d2410 !important; stroke: #3fb950 !important; stroke-width: 2px !important;
+}
+.mermaid-wrap g.node.concrete foreignObject div,
+.mermaid-wrap g.node.leaf foreignObject div,
+.mermaid-wrap g.node.real foreignObject div,
+.mermaid-wrap g.node.context foreignObject div { color: #56d364 !important; }
+
+/* adapter / proxy / decorator — パープル */
+.mermaid-wrap g.node.adapter rect,
+.mermaid-wrap g.node.proxy rect,
+.mermaid-wrap g.node.decorator rect {
+  fill: #1e0d37 !important; stroke: #bc8cff !important; stroke-width: 2px !important;
+}
+.mermaid-wrap g.node.adapter foreignObject div,
+.mermaid-wrap g.node.proxy foreignObject div,
+.mermaid-wrap g.node.decorator foreignObject div { color: #d2a8ff !important; }
+
+/* subsystem / external / flyweight / composite — オレンジ */
+.mermaid-wrap g.node.subsystem rect,
+.mermaid-wrap g.node.external rect,
+.mermaid-wrap g.node.flyweight rect,
+.mermaid-wrap g.node.composite rect {
+  fill: #1f1200 !important; stroke: #e3b341 !important; stroke-width: 2px !important;
+}
+.mermaid-wrap g.node.subsystem foreignObject div,
+.mermaid-wrap g.node.external foreignObject div,
+.mermaid-wrap g.node.flyweight foreignObject div,
+.mermaid-wrap g.node.composite foreignObject div { color: #f0c24b !important; }
+
+/* client — グレー */
+.mermaid-wrap g.node.client rect {
+  fill: #1c2128 !important; stroke: #8b949e !important;
+}
+.mermaid-wrap g.node.client foreignObject div { color: #c9d1d9 !important; }
+
+/* impl — ダークグレー */
+.mermaid-wrap g.node.impl rect {
+  fill: #1c2128 !important; stroke: #30363d !important;
+}
+.mermaid-wrap g.node.impl foreignObject div { color: #8b949e !important; }
 
 /* ── Cheatsheet ──────────────────────────────────────────────── */
 .cheat-table {
