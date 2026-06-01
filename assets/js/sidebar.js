@@ -18,10 +18,9 @@ async function buildSidebar(containerId = 'sidebar-nav') {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const base = location.pathname.includes('/patterns/') ? '../' : '';
   let patterns;
   try {
-    const res = await fetch(base + 'data/patterns.json');
+    const res = await fetch('data/patterns.json');
     patterns = await res.json();
   } catch (e) { return; }
 
@@ -41,7 +40,7 @@ async function buildSidebar(containerId = 'sidebar-nav') {
         </button>
         <ul class="sidebar-links">
           ${items.map(p => `
-            <li><a href="${base}pattern.html?id=${p.id}">${p.name}</a></li>
+            <li><a href="pattern.html?id=${p.id}">${p.name}</a></li>
           `).join('')}
         </ul>
       </div>

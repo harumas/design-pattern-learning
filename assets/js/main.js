@@ -57,8 +57,7 @@ let _patterns = null;
 
 async function loadPatterns() {
   if (_patterns) return _patterns;
-  const base = location.pathname.includes('/patterns/') ? '../' : '';
-  const res = await fetch(base + 'data/patterns.json');
+  const res = await fetch('data/patterns.json');
   _patterns = await res.json();
   return _patterns;
 }
@@ -96,14 +95,13 @@ function initSearch() {
 }
 
 function renderResults(hits, container) {
-  const base = location.pathname.includes('/patterns/') ? '../' : '';
   if (!hits.length) {
     container.innerHTML = '<div class="search-no-result">パターンが見つかりません</div>';
     container.classList.add('show');
     return;
   }
   container.innerHTML = hits.map(p => `
-    <a class="search-result-item" href="${base}pattern.html?id=${p.id}">
+    <a class="search-result-item" href="pattern.html?id=${p.id}">
       <span class="badge badge-${p.category}">${categoryLabel(p.category)}</span>
       <span>
         <div class="res-name">${p.name}</div>
