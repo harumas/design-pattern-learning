@@ -2,6 +2,9 @@
 
 C# サンプルとゲームでの実例付き。GoF 23パターンからゲームAI・ネットワークまで **70パターン** を網羅した学習サイトです。
 
+[![GitHub Pages](https://img.shields.io/badge/🌐_Live_Site-GitHub_Pages-0a0a0a?style=for-the-badge)](https://harumas.github.io/design-pattern-learning/)
+[![GitHub Repo](https://img.shields.io/badge/📦_Repo-GitHub-181717?style=for-the-badge&logo=github)](https://github.com/harumas/design-pattern-learning)
+
 ![Static Site](https://img.shields.io/badge/Static_Site-HTML%2FCSS%2FJS-blue)
 ![Patterns](https://img.shields.io/badge/Patterns-70-green)
 ![Lang](https://img.shields.io/badge/Sample_Code-C%23-purple)
