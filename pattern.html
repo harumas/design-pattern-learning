@@ -273,8 +273,30 @@ function renderPattern(p) {
   initQuiz();
   initHighlight();
   if (typeof mermaid !== 'undefined') {
-    mermaid.run({ querySelector: '.mermaid' });
+    mermaid.run({ querySelector: '.mermaid' }).then(() => {
+      normalizeMermaidSize();
+    });
   }
+}
+
+/* ── Mermaid SVG フォントサイズ正規化 ────────────────────────
+   viewBox 幅から「フォントが TARGET_PX になる」表示幅を算出してセットする。
+   これにより縦長・横長に関わらずテキストが同じ視覚サイズになる。     */
+function normalizeMermaidSize() {
+  const TARGET_PX   = 12;   // 画面上で見せたいフォントサイズ(px)
+  const MERMAID_PX  = 14;   // mermaid.initialize の fontSize と合わせる
+  const MAX_W       = 660;  // 最大幅(px) — 広すぎるダイアグラム上限
+
+  document.querySelectorAll('.mermaid-wrap svg').forEach(svg => {
+    const vb = svg.viewBox?.baseVal;
+    if (!vb || vb.width <= 0) return;
+    const displayW = Math.min(Math.round(TARGET_PX * vb.width / MERMAID_PX), MAX_W);
+    svg.style.setProperty('width',     displayW + 'px', 'important');
+    svg.style.setProperty('max-width', '100%',          'important');
+    svg.style.setProperty('height',    'auto',          'important');
+    svg.style.setProperty('display',   'block',         'important');
+    svg.style.setProperty('margin',    '0 auto',        'important');
+  });
 }
 
 /* ─── フォールバック：patterns.json のメタデータで準備中ページ表示 ── */
